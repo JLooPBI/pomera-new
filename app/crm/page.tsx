@@ -1,56 +1,41 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Users, Building, UserCheck, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, Users, Building, UserCheck, Mail, Phone, MapPin, Calendar, Eye, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import DynamicNotes from '@/components/DynamicNotes';
-import SecureFileUpload from '@/components/SecureFileUpload';
 import { crmDatabase, type Company, type CompanyContact } from '@/lib/supabase-crm';
 
 export default function CRMPage() {
   const [activeTab, setActiveTab] = useState('leads');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Lead detail view state
+  const [companyDetailsExpanded, setCompanyDetailsExpanded] = useState(false);
+  const [opportunityExpanded, setOpportunityExpanded] = useState(false);
+  const [leadStatus, setLeadStatus] = useState('New Lead');
+  const [showActivityForm, setShowActivityForm] = useState(false);
+  const [activityFormData, setActivityFormData] = useState({
+    activity_type: '',
+    notes: '',
+    follow_up_date: ''
+  });
+  
   // Form state
   const [formData, setFormData] = useState({
-    // Company data
-    company_name: '',
-    industry: '',
-    company_size: '',
-    annual_revenue: '',
-    company_website: '',
-    street_number: '',
-    street_name: '',
-    apt_suite: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    lead_source: '',
-    lead_score: '',
-    expected_close_date: '',
-    staffing_needs_overview: '',
-    immediate_positions: '',
-    annual_positions: '',
-    opportunity_value: '',
-    position_names: '',
-    position_type: '',
-    additional_staffing_details: '',
-    
-    // Contact data
-    contact_first_name: '',
-    contact_last_name: '',
-    contact_job_title: '',
-    contact_email: '',
-    contact_phone: '',
-    contact_mobile: '',
-    preferred_contact_method: 'email'
+    company_name: '', industry: '', company_size: '', annual_revenue: '', company_website: '',
+    street_number: '', street_name: '', apt_suite: '', city: '', state: '', zip_code: '',
+    lead_source: '', lead_score: '', expected_close_date: '', staffing_needs_overview: '',
+    immediate_positions: '', annual_positions: '', opportunity_value: '', position_names: '',
+    position_type: '', additional_staffing_details: '', contact_first_name: '', contact_last_name: '',
+    contact_job_title: '', contact_email: '', contact_phone: '', contact_mobile: '', preferred_contact_method: 'email'
   });
 
   const tabs = [
@@ -67,7 +52,7 @@ export default function CRMPage() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
-      const data = await crmDatabase.getCompaniesByStatus(activeTab.slice(0, -1)); // Remove 's' from 'leads'
+      const data = await crmDatabase.getCompaniesByStatus(activeTab.slice(0, -1));
       setCompanies(data || []);
     } catch (error) {
       console.error('Error loading companies:', error);
@@ -77,10 +62,78 @@ export default function CRMPage() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleViewLead = async (leadId: string) => {
+    try {
+      const leadData = await crmDatabase.getCompanyById(leadId);
+      setSelectedLead(leadData);
+      setLeadStatus(leadData.company_status === 'lead' ? 'New Lead' : 
+                   leadData.company_status === 'prospect' ? 'Active Prospect' : 'Client');
+    } catch (error) {
+      console.error('Error loading lead:', error);
+    }
+  };
+
+  const handleActivityInputChange = (field: string, value: string) => {
+    setActivityFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveActivity = async () => {
+    if (!activityFormData.activity_type || !activityFormData.notes) {
+      alert('Please fill in Activity Type and Notes (both required)');
+      return;
+    }
+
+    try {
+      // Use the dedicated activities table
+      await crmDatabase.addActivity(
+        selectedLead.company_id,
+        activityFormData.activity_type,
+        activityFormData.notes,
+        'Current User', // TODO: Replace with actual user when auth is implemented
+        activityFormData.follow_up_date || undefined
+      );
+      
+      // Reset form
+      setActivityFormData({ activity_type: '', notes: '', follow_up_date: '' });
+      setShowActivityForm(false);
+      
+      alert('Activity logged successfully!');
+      
+      // Refresh the lead data to show new activity
+      const updatedLead = await crmDatabase.getCompanyById(selectedLead.company_id);
+      setSelectedLead(updatedLead);
+      
+    } catch (error) {
+      console.error('Error saving activity:', error);
+      alert('Error saving activity. Please try again.');
+    }
+  };
+
+  // Fixed: Added the missing handleStatusChange function
+  const handleStatusChange = async (newStatus: string) => {
+    if (!selectedLead) return;
+    
+    try {
+      let dbStatus = newStatus === 'New Lead' ? 'lead' : 
+                    newStatus === 'Active Prospect' ? 'prospect' : 'client';
+      
+      await crmDatabase.updateCompanyStatus(selectedLead.company_id, dbStatus);
+      setLeadStatus(newStatus);
+      
+      // Update the local state
+      setSelectedLead(prev => ({ ...prev, company_status: dbStatus }));
+      
+      // Refresh the lists
+      loadCompanies();
+      
+      alert(`Status updated to ${newStatus} successfully!`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Error updating status. Please try again.');
+    }
   };
 
   const handleSave = async () => {
@@ -93,36 +146,36 @@ export default function CRMPage() {
     try {
       const companyData: Company = {
         company_name: formData.company_name,
-        industry: formData.industry,
-        company_size: formData.company_size,
-        annual_revenue: formData.annual_revenue,
-        company_website: formData.company_website,
-        street_number: formData.street_number,
-        street_name: formData.street_name,
-        apt_suite: formData.apt_suite,
-        city: formData.city,
-        state: formData.state,
-        zip_code: formData.zip_code,
-        company_status: activeTab.slice(0, -1) as 'lead' | 'prospect' | 'client',
-        lead_source: formData.lead_source,
-        lead_score: formData.lead_score,
-        expected_close_date: formData.expected_close_date,
-        staffing_needs_overview: formData.staffing_needs_overview,
+        industry: formData.industry || undefined,
+        company_size: formData.company_size || undefined,
+        annual_revenue: formData.annual_revenue || undefined,
+        company_website: formData.company_website || undefined,
+        street_number: formData.street_number || undefined,
+        street_name: formData.street_name || undefined,
+        apt_suite: formData.apt_suite || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        zip_code: formData.zip_code || undefined,
+        company_status: 'lead', // Always start as lead
+        lead_source: formData.lead_source || undefined,
+        lead_score: formData.lead_score || undefined,
+        expected_close_date: formData.expected_close_date || undefined,
+        staffing_needs_overview: formData.staffing_needs_overview || undefined,
         immediate_positions: formData.immediate_positions ? parseInt(formData.immediate_positions) : undefined,
         annual_positions: formData.annual_positions ? parseInt(formData.annual_positions) : undefined,
         opportunity_value: formData.opportunity_value ? parseFloat(formData.opportunity_value) : undefined,
-        position_names: formData.position_names,
-        position_type: formData.position_type,
-        additional_staffing_details: formData.additional_staffing_details
+        position_names: formData.position_names || undefined,
+        position_type: formData.position_type || undefined,
+        additional_staffing_details: formData.additional_staffing_details || undefined
       };
 
       const contactData = {
         contact_first_name: formData.contact_first_name,
         contact_last_name: formData.contact_last_name,
-        contact_job_title: formData.contact_job_title,
+        contact_job_title: formData.contact_job_title || undefined,
         contact_email: formData.contact_email,
-        contact_phone: formData.contact_phone,
-        contact_mobile: formData.contact_mobile,
+        contact_phone: formData.contact_phone || undefined,
+        contact_mobile: formData.contact_mobile || undefined,
         preferred_contact_method: formData.preferred_contact_method as 'email' | 'phone' | 'mobile',
         is_primary_contact: true,
         is_decision_maker: true,
@@ -131,7 +184,7 @@ export default function CRMPage() {
 
       await crmDatabase.createCompany(companyData, contactData);
       
-      // Reset form and refresh list
+      // Reset form
       setFormData({
         company_name: '', industry: '', company_size: '', annual_revenue: '', company_website: '',
         street_number: '', street_name: '', apt_suite: '', city: '', state: '', zip_code: '',
@@ -143,11 +196,10 @@ export default function CRMPage() {
       
       setShowAddForm(false);
       loadCompanies();
-      
-      alert('Company saved successfully!');
+      alert('Lead saved successfully!');
     } catch (error) {
       console.error('Error saving company:', error);
-      alert('Error saving company. Please try again.');
+      alert('Error saving lead. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -159,11 +211,288 @@ export default function CRMPage() {
     company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Lead Detail View Component
+  if (selectedLead) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        <div className="container mx-auto px-4 py-8 mt-16">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-4">
+                <Button variant="outline" onClick={() => setSelectedLead(null)}>
+                  ← Back to {activeTab}
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-primary">{selectedLead.company_name}</h1>
+                  <p className="text-muted-foreground">Lead Management</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Lead Status Selector */}
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Lead Status:</label>
+              <select 
+                value={leadStatus}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="New Lead">New Lead</option>
+                <option value="Active Prospect">Active Prospect</option>
+                <option value="Client">Client</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Company Details Section - Collapsible */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
+            <div 
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+              onClick={() => setCompanyDetailsExpanded(!companyDetailsExpanded)}
+            >
+              <h3 className="text-lg font-semibold text-gray-900">Company Details</h3>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); alert('Edit functionality coming soon!'); }}>
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                {companyDetailsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </div>
+            </div>
+            
+            {companyDetailsExpanded && (
+              <div className="p-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Company Information</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Industry:</span> {selectedLead.industry || 'Not specified'}</p>
+                      <p><span className="font-medium">Size:</span> {selectedLead.company_size || 'Not specified'}</p>
+                      <p><span className="font-medium">Revenue:</span> {selectedLead.annual_revenue || 'Not specified'}</p>
+                      <p><span className="font-medium">Website:</span> {selectedLead.company_website || 'Not specified'}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Address</h4>
+                    <div className="text-sm">
+                      {selectedLead.street_number || selectedLead.street_name ? (
+                        <p>
+                          {selectedLead.street_number} {selectedLead.street_name}
+                          {selectedLead.apt_suite && `, ${selectedLead.apt_suite}`}
+                        </p>
+                      ) : null}
+                      {selectedLead.city || selectedLead.state ? (
+                        <p>{selectedLead.city}, {selectedLead.state} {selectedLead.zip_code}</p>
+                      ) : <p>Not specified</p>}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Primary Contact</h4>
+                    {selectedLead.company_contacts?.[0] && (
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-medium">Name:</span> {selectedLead.company_contacts[0].contact_first_name} {selectedLead.company_contacts[0].contact_last_name}</p>
+                        <p><span className="font-medium">Title:</span> {selectedLead.company_contacts[0].contact_job_title || 'Not specified'}</p>
+                        <p><span className="font-medium">Email:</span> {selectedLead.company_contacts[0].contact_email}</p>
+                        <p><span className="font-medium">Phone:</span> {selectedLead.company_contacts[0].contact_phone || 'Not specified'}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Lead Info</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Source:</span> {selectedLead.lead_source || 'Not specified'}</p>
+                      <p><span className="font-medium">Score:</span> 
+                        {selectedLead.lead_score && (
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                            selectedLead.lead_score === 'hot' ? 'bg-red-100 text-red-800' :
+                            selectedLead.lead_score === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {selectedLead.lead_score}
+                          </span>
+                        )}
+                      </p>
+                      <p><span className="font-medium">Expected Close:</span> {selectedLead.expected_close_date || 'Not set'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Opportunity Section - Collapsible */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
+            <div 
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+              onClick={() => setOpportunityExpanded(!opportunityExpanded)}
+            >
+              <h3 className="text-lg font-semibold text-gray-900">Opportunity Details</h3>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); alert('Edit functionality coming soon!'); }}>
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                {opportunityExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </div>
+            </div>
+            
+            {opportunityExpanded && (
+              <div className="p-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Immediate Positions:</span> {selectedLead.immediate_positions || 'Not specified'}</p>
+                    <p><span className="font-medium">Annual Positions:</span> {selectedLead.annual_positions || 'Not specified'}</p>
+                    <p><span className="font-medium">Opportunity Value:</span> {selectedLead.opportunity_value ? `$${selectedLead.opportunity_value.toLocaleString()}` : 'Not specified'}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Position Names:</span> {selectedLead.position_names || 'Not specified'}</p>
+                    <p><span className="font-medium">Position Type:</span> {selectedLead.position_type || 'Not specified'}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Staffing Overview:</span></p>
+                    <p className="text-gray-600">{selectedLead.staffing_needs_overview || 'No overview provided'}</p>
+                    {selectedLead.additional_staffing_details && (
+                      <div>
+                        <p><span className="font-medium">Additional Details:</span></p>
+                        <p className="text-gray-600">{selectedLead.additional_staffing_details}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Lead Work Section */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Lead Activity & Notes</h3>
+              <Button 
+                onClick={() => setShowActivityForm(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Log New Activity
+              </Button>
+            </div>
+            
+            <div className="p-4">
+              {/* Activity Form */}
+              {showActivityForm && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
+                  <h4 className="font-medium text-gray-900 mb-4">Log New Activity</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Activity Type *</label>
+                      <select 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        value={activityFormData.activity_type}
+                        onChange={(e) => handleActivityInputChange('activity_type', e.target.value)}
+                      >
+                        <option value="">Select Activity Type</option>
+                        <option value="Attempted Call">Attempted Call</option>
+                        <option value="Completed Call">Completed Call</option>
+                        <option value="Sent SMS">Sent SMS</option>
+                        <option value="Sent Email">Sent Email</option>
+                        <option value="Inbound Contact">Inbound Contact</option>
+                        <option value="Note">Note</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Follow-Up Date</label>
+                      <Input 
+                        type="date" 
+                        value={activityFormData.follow_up_date}
+                        onChange={(e) => handleActivityInputChange('follow_up_date', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes *</label>
+                    <textarea 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      rows={4}
+                      placeholder="Enter activity details and notes..."
+                      value={activityFormData.notes}
+                      onChange={(e) => handleActivityInputChange('notes', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveActivity}>
+                      Save Activity
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowActivityForm(false);
+                        setActivityFormData({ activity_type: '', notes: '', follow_up_date: '' });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Activities List */}
+              {selectedLead.company_activities && selectedLead.company_activities.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">Recent Activities</h4>
+                  {selectedLead.company_activities.map((activity: any) => (
+                    <div key={activity.activity_id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Users className="h-4 w-4" />
+                          <span>{activity.created_by_name || 'User'}</span>
+                          <Calendar className="h-4 w-4 ml-2" />
+                          <span>{new Date(activity.created_date).toLocaleDateString()}</span>
+                          <span>{new Date(activity.created_date).toLocaleTimeString()}</span>
+                        </div>
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                          {activity.activity_type}
+                        </span>
+                      </div>
+                      <div className="text-gray-900 whitespace-pre-wrap">{activity.activity_notes}</div>
+                      {activity.follow_up_date && (
+                        <div className="mt-2 text-sm text-orange-600">
+                          Follow-up: {new Date(activity.follow_up_date).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>No activities logged yet</p>
+                  <p className="text-sm">Click "Log New Activity" to get started tracking communications and progress.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  // Main CRM List View
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-16">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">Client CRM</h1>
@@ -222,10 +551,13 @@ export default function CRMPage() {
             <Button variant="outline" size="icon">
               <Filter className="h-4 w-4" />
             </Button>
-            <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              + New
-            </Button>
+            {/* Only show "Add New" for leads */}
+            {activeTab === 'leads' && (
+              <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                + New Lead
+              </Button>
+            )}
           </div>
         </div>
 
@@ -248,12 +580,14 @@ export default function CRMPage() {
                     {searchTerm ? `No ${activeTab} found` : `No ${activeTab} yet`}
                   </h3>
                   <p className="text-gray-500 mb-6">
-                    {searchTerm ? `No ${activeTab} match your search criteria.` : `Get started by adding your first ${activeTab.slice(0, -1)}`}
+                    {searchTerm ? `No ${activeTab} match your search criteria.` : 
+                     activeTab === 'leads' ? 'Get started by adding your first lead' :
+                     `${activeTab === 'prospects' ? 'Prospects' : 'Clients'} are created by promoting leads`}
                   </p>
-                  {!searchTerm && (
+                  {!searchTerm && activeTab === 'leads' && (
                     <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
                       <Plus className="h-4 w-4" />
-                      + New
+                      + New Lead
                     </Button>
                   )}
                 </div>
@@ -322,11 +656,9 @@ export default function CRMPage() {
                         </div>
                         
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleViewLead(company.company_id)}>
+                            <Eye className="h-4 w-4" />
                             View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Edit
                           </Button>
                         </div>
                       </div>
@@ -336,16 +668,11 @@ export default function CRMPage() {
               )}
             </div>
           ) : (
-            /* Add Form - Same as before but with working save functionality */
+            /* Add Form */
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Add New {activeTab.slice(0, -1)}</h2>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowAddForm(false)}
-                >
-                  Cancel
-                </Button>
+                <h2 className="text-xl font-semibold">Add New Lead</h2>
+                <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -370,7 +697,7 @@ export default function CRMPage() {
                       onChange={(e) => handleInputChange('industry', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Company Size</label>
@@ -389,20 +716,14 @@ export default function CRMPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Annual Revenue</label>
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      <Input 
+                        placeholder="e.g., $1-5M" 
                         value={formData.annual_revenue}
                         onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
-                      >
-                        <option value="">Select range</option>
-                        <option value="<1M">Less than $1M</option>
-                        <option value="1M-5M">$1M - $5M</option>
-                        <option value="5M-10M">$5M - $10M</option>
-                        <option value="10M+">$10M+</option>
-                      </select>
+                      />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                     <Input 
@@ -411,105 +732,49 @@ export default function CRMPage() {
                       onChange={(e) => handleInputChange('company_website', e.target.value)}
                     />
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <Input 
-                          placeholder="Street Number" 
-                          className="col-span-1" 
-                          value={formData.street_number}
-                          onChange={(e) => handleInputChange('street_number', e.target.value)}
-                        />
-                        <Input 
-                          placeholder="Street Name" 
-                          className="col-span-2" 
-                          value={formData.street_name}
-                          onChange={(e) => handleInputChange('street_name', e.target.value)}
-                        />
-                      </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-800">Address</h4>
+                    <div className="grid grid-cols-3 gap-2">
                       <Input 
-                        placeholder="Apt/Suite # (optional)" 
+                        placeholder="Street #" 
+                        value={formData.street_number}
+                        onChange={(e) => handleInputChange('street_number', e.target.value)}
+                      />
+                      <Input 
+                        placeholder="Street Name" 
+                        className="col-span-2"
+                        value={formData.street_name}
+                        onChange={(e) => handleInputChange('street_name', e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input 
+                        placeholder="Suite/Apt" 
                         value={formData.apt_suite}
                         onChange={(e) => handleInputChange('apt_suite', e.target.value)}
                       />
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input 
-                          placeholder="City" 
-                          value={formData.city}
-                          onChange={(e) => handleInputChange('city', e.target.value)}
-                        />
-                        <select 
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          value={formData.state}
-                          onChange={(e) => handleInputChange('state', e.target.value)}
-                        >
-                          <option value="">State</option>
-                          <option value="AL">AL</option>
-                          <option value="AK">AK</option>
-                          <option value="AZ">AZ</option>
-                          <option value="AR">AR</option>
-                          <option value="CA">CA</option>
-                          <option value="CO">CO</option>
-                          <option value="CT">CT</option>
-                          <option value="DE">DE</option>
-                          <option value="FL">FL</option>
-                          <option value="GA">GA</option>
-                          <option value="HI">HI</option>
-                          <option value="ID">ID</option>
-                          <option value="IL">IL</option>
-                          <option value="IN">IN</option>
-                          <option value="IA">IA</option>
-                          <option value="KS">KS</option>
-                          <option value="KY">KY</option>
-                          <option value="LA">LA</option>
-                          <option value="ME">ME</option>
-                          <option value="MD">MD</option>
-                          <option value="MA">MA</option>
-                          <option value="MI">MI</option>
-                          <option value="MN">MN</option>
-                          <option value="MS">MS</option>
-                          <option value="MO">MO</option>
-                          <option value="MT">MT</option>
-                          <option value="NE">NE</option>
-                          <option value="NV">NV</option>
-                          <option value="NH">NH</option>
-                          <option value="NJ">NJ</option>
-                          <option value="NM">NM</option>
-                          <option value="NY">NY</option>
-                          <option value="NC">NC</option>
-                          <option value="ND">ND</option>
-                          <option value="OH">OH</option>
-                          <option value="OK">OK</option>
-                          <option value="OR">OR</option>
-                          <option value="PA">PA</option>
-                          <option value="RI">RI</option>
-                          <option value="SC">SC</option>
-                          <option value="SD">SD</option>
-                          <option value="TN">TN</option>
-                          <option value="TX">TX</option>
-                          <option value="UT">UT</option>
-                          <option value="VT">VT</option>
-                          <option value="VA">VA</option>
-                          <option value="WA">WA</option>
-                          <option value="WV">WV</option>
-                          <option value="WI">WI</option>
-                          <option value="WY">WY</option>
-                        </select>
-                      </div>
                       <Input 
-                        placeholder="ZIP Code" 
-                        pattern="[0-9]{5}(-[0-9]{4})?" 
-                        title="Enter 5-digit or 9-digit ZIP code"
-                        value={formData.zip_code}
-                        onChange={(e) => handleInputChange('zip_code', e.target.value)}
+                        placeholder="City" 
+                        value={formData.city}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                      />
+                      <Input 
+                        placeholder="State" 
+                        value={formData.state}
+                        onChange={(e) => handleInputChange('state', e.target.value)}
                       />
                     </div>
+                    <Input 
+                      placeholder="ZIP Code" 
+                      className="w-32"
+                      value={formData.zip_code}
+                      onChange={(e) => handleInputChange('zip_code', e.target.value)}
+                    />
                   </div>
                 </div>
 
-                {/* Primary Contact */}
+                {/* Contact & Opportunity */}
                 <div className="space-y-4">
                   <h3 className="font-medium text-gray-900 border-b pb-2">Primary Contact</h3>
                   
@@ -535,7 +800,7 @@ export default function CRMPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
                     <Input 
-                      placeholder="e.g., HR Director, COO, Administrator" 
+                      placeholder="e.g., HR Director" 
                       value={formData.contact_job_title}
                       onChange={(e) => handleInputChange('contact_job_title', e.target.value)}
                     />
@@ -569,26 +834,10 @@ export default function CRMPage() {
                       />
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Contact Method</label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={formData.preferred_contact_method}
-                      onChange={(e) => handleInputChange('preferred_contact_method', e.target.value)}
-                    >
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="mobile">Mobile</option>
-                    </select>
-                  </div>
-                </div>
 
-                {/* Sales Information */}
-                <div className="space-y-4 md:col-span-2">
-                  <h3 className="font-medium text-gray-900 border-b pb-2">Sales Information</h3>
+                  <h3 className="font-medium text-gray-900 border-b pb-2 mt-6">Lead Information</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
                       <select 
@@ -597,12 +846,12 @@ export default function CRMPage() {
                         onChange={(e) => handleInputChange('lead_source', e.target.value)}
                       >
                         <option value="">Select source</option>
-                        <option value="website">Website</option>
-                        <option value="referral">Referral</option>
-                        <option value="cold-call">Cold Call</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="trade-show">Trade Show</option>
-                        <option value="other">Other</option>
+                        <option value="Website">Website</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Cold Call">Cold Call</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Trade Show">Trade Show</option>
+                        <option value="Other">Other</option>
                       </select>
                     </div>
                     <div>
@@ -613,101 +862,30 @@ export default function CRMPage() {
                         onChange={(e) => handleInputChange('lead_score', e.target.value)}
                       >
                         <option value="">Select score</option>
-                        <option value="hot">Hot - Ready to buy</option>
-                        <option value="warm">Warm - Interested</option>
-                        <option value="cold">Cold - Early stage</option>
+                        <option value="hot">Hot</option>
+                        <option value="warm">Warm</option>
+                        <option value="cold">Cold</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label>
-                      <Input 
-                        type="date" 
-                        value={formData.expected_close_date}
-                        onChange={(e) => handleInputChange('expected_close_date', e.target.value)}
-                      />
-                    </div>
                   </div>
-                  
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label>
+                    <Input 
+                      type="date" 
+                      value={formData.expected_close_date}
+                      onChange={(e) => handleInputChange('expected_close_date', e.target.value)}
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Staffing Needs Overview</label>
                     <textarea 
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       rows={3}
-                      placeholder="Brief overview of staffing requirements"
+                      placeholder="Brief overview of staffing needs..."
                       value={formData.staffing_needs_overview}
                       onChange={(e) => handleInputChange('staffing_needs_overview', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Opportunity Details */}
-                <div className="space-y-4 md:col-span-2">
-                  <h3 className="font-medium text-gray-900 border-b pb-2">Opportunity Details</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Immediate Positions</label>
-                      <Input 
-                        type="number" 
-                        placeholder="# positions needed now" 
-                        value={formData.immediate_positions}
-                        onChange={(e) => handleInputChange('immediate_positions', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Annual Positions</label>
-                      <Input 
-                        type="number" 
-                        placeholder="Estimated yearly need" 
-                        value={formData.annual_positions}
-                        onChange={(e) => handleInputChange('annual_positions', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Value</label>
-                      <Input 
-                        type="number" 
-                        placeholder="Estimated revenue ($)" 
-                        value={formData.opportunity_value}
-                        onChange={(e) => handleInputChange('opportunity_value', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Position Names</label>
-                      <Input 
-                        placeholder="e.g., RN, LPN, CNA, Physical Therapist" 
-                        value={formData.position_names}
-                        onChange={(e) => handleInputChange('position_names', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Position Type</label>
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={formData.position_type}
-                        onChange={(e) => handleInputChange('position_type', e.target.value)}
-                      >
-                        <option value="">Select type</option>
-                        <option value="full-time">Full Time</option>
-                        <option value="temp">Temporary</option>
-                        <option value="contract">Contract</option>
-                        <option value="maternity">Maternity Cover</option>
-                        <option value="temp-to-perm">Temp to Permanent</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Additional Staffing Details</label>
-                    <textarea 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      rows={3}
-                      placeholder="Additional details about staffing requirements"
-                      value={formData.additional_staffing_details}
-                      onChange={(e) => handleInputChange('additional_staffing_details', e.target.value)}
                     />
                   </div>
                 </div>
@@ -715,16 +893,10 @@ export default function CRMPage() {
 
               {/* Form Actions */}
               <div className="flex gap-4 mt-8 pt-6 border-t">
-                <Button 
-                  className="flex-1 sm:flex-none"
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : `Save ${activeTab.slice(0, -1)}`}
+                <Button className="flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Lead'}
                 </Button>
-                <Button variant="outline" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
+                <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
               </div>
             </div>
           )}
