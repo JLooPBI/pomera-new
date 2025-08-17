@@ -1,103 +1,87 @@
-import Image from "next/image";
+import { Mail, Phone, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
-export default function Home() {
+export default function HomePage() {
+  const whatsappNumber = "13053313528";
+  const whatsappLink = `https://wa.me/${whatsappNumber}`;
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="bg-gradient-to-br from-background via-secondary-light/10 to-accent/10">
+        {/* Logo and Header Section */}
+        <div className="container mx-auto px-4 pt-8 pb-6">
+          <div className="flex items-center justify-center max-w-6xl mx-auto">
+            <div className="flex items-center space-x-8">
+              <img 
+                src="/lovable-uploads/86aabeb5-c86b-4e8e-8ea7-239349c6cae2.png" 
+                alt="Healthcare Consulting Logo" 
+                className="h-64 w-auto"
+              />
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-primary leading-tight">
+                  Healthcare Recruiting & Consulting
+                </h1>
+                <p className="text-lg md:text-xl text-muted-foreground italic mt-2">
+                  Elevating Talent & Operational Excellence
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {/* Section Break Image */}
+        <div className="w-full py-0">
+          <img 
+            src="/lovable-uploads/a9eedb62-09ce-4fdc-9455-e5baa278633c.png" 
+            alt="Healthcare professionals" 
+            className="w-full h-64 object-cover"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </div>
+
+        {/* About Us Section */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-primary mb-6 text-center">About Us</h2>
+            <p className="text-lg text-foreground leading-relaxed text-center font-medium">
+              Pomera Care Healthcare Recruiting & Consulting specializes in bridging the gap between exceptional healthcare professionals and mission-driven organizations. With a relational and strategic approach, we guide candidates through meaningful career transitions—offering personalized consultation, role alignment, and professional development insights to ensure long-term success in patient-centered environments.
+            </p>
+          </div>
+        </div>
+
+        {/* Section Break Image 2 */}
+        <div className="w-full py-1">
+          <img 
+            src="/lovable-uploads/ce4260ac-1d43-40cb-9e86-14dfb5fc5d5a.png" 
+            alt="Medical team in hospital" 
+            className="w-full h-64 object-cover opacity-70"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+
+        {/* Testimonials Section */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-primary mb-6 text-center">Testimonials</h2>
+            <div className="bg-white/50 rounded-lg p-8 shadow-lg">
+              <p className="text-muted-foreground leading-relaxed mb-6 italic">
+                "I had the absolute pleasure of working with Aliza Grossman and I truly cannot recommend her enough. During a pivotal time in my career, Aliza played a key role in helping me land an incredible opportunity with a new company. Her support, guidance, and belief in my potential made all the difference as I stepped into a leadership position.
+              </p>
+              <p className="text-muted-foreground leading-relaxed mb-6 italic">
+                Aliza is someone who brings both professionalism and genuine warmth into every interaction. She is thoughtful, reliable, and consistently goes above and beyond. What sets her apart is her ability to listen with empathy, communicate with clarity, and lead with integrity.
+              </p>
+              <p className="text-muted-foreground leading-relaxed mb-6 italic">
+                Whether collaborating on a project or simply exchanging ideas, Aliza always adds value and insight. Her work ethic is unmatched, and she approaches every task with passion and purpose. Anyone who has the opportunity to work with Aliza is truly fortunate. She is not just an asset—she's a catalyst for growth and success."
+              </p>
+              <div className="text-right">
+                <p className="font-semibold text-primary">Jubert Paul "JP" Ong</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 }
