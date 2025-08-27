@@ -1,0 +1,90 @@
+# Clarification First Rule
+
+## Core Principle
+**When instructions are unclear or ambiguous, ask for clarification before proceeding. It's better to take 30 seconds to get it right than to waste time on incorrect implementations.**
+
+## What This Rule Covers
+
+### When To Ask For Clarification
+- **Ambiguous requirements**: When the request could be interpreted multiple ways
+- **Missing context**: When you need more information about the current state
+- **Unclear scope**: When it's not clear what should or shouldn't be changed
+- **Technical decisions**: When multiple approaches are possible and you need guidance
+- **Business logic**: When you need to understand the intended behavior
+- **Integration points**: When you need to know how this fits with existing systems
+
+### What To Do Instead
+1. **Ask specific questions** - Don't make assumptions, get clear answers
+2. **Provide options** - If multiple approaches exist, present them for choice
+3. **Request examples** - Ask for concrete examples of desired behavior
+4. **Seek context** - Understand the broader picture before implementing
+5. **Confirm understanding** - Repeat back what you think is being asked
+
+## Examples
+
+### ❌ WRONG - Don't Do This
+```
+User: "Make the form better"
+Assistant: *Immediately starts redesigning the form based on assumptions*
+```
+
+### ✅ CORRECT - Do This Instead
+```
+User: "Make the form better"
+Assistant: "I'd be happy to help improve the form! To make the right changes, I need some clarification:
+
+1. What specific aspects of the form need improvement? (e.g., validation, layout, user experience, accessibility)
+2. Are there any particular pain points or user feedback you're addressing?
+3. Should I focus on visual design, functionality, or both?
+4. Are there any constraints I should be aware of (e.g., design system, existing patterns)?
+
+This will help me make targeted improvements that actually address your needs."
+```
+
+## Types of Clarification Questions
+
+### Scope Questions
+- "Which specific components/files should I modify?"
+- "Should this change affect other parts of the system?"
+- "Are there any areas I should avoid changing?"
+
+### Technical Questions
+- "What's the preferred approach for handling [specific technical challenge]?"
+- "Should I use the existing [framework/pattern] or implement something new?"
+- "Are there performance or scalability requirements I should consider?"
+
+### Business Logic Questions
+- "What should happen when [specific scenario occurs]?"
+- "How should this integrate with the existing [feature/system]?"
+- "Are there any business rules or constraints I should follow?"
+
+### User Experience Questions
+- "Who are the primary users of this feature?"
+- "What's the typical user workflow?"
+- "Are there accessibility requirements I should consider?"
+
+## Implementation Guidelines
+
+### Before Starting Any Work
+1. **Read the request multiple times** - Look for ambiguity or missing details
+2. **Identify what's unclear** - List specific areas that need clarification
+3. **Formulate specific questions** - Ask for concrete, actionable information
+4. **Provide context** - Explain why the clarification is needed
+
+### During Clarification
+1. **Listen to the answers** - Don't rush to implement once you get partial information
+2. **Ask follow-up questions** - Dig deeper if the initial answer is still unclear
+3. **Confirm understanding** - Repeat back what you think you heard
+4. **Get agreement** - Ensure you're on the same page before proceeding
+
+### After Clarification
+1. **Summarize the plan** - Confirm what you're going to implement
+2. **Ask for final approval** - Make sure you haven't misunderstood anything
+3. **Proceed with confidence** - Now you have clear direction
+
+## Remember
+**30 seconds of clarification can save hours of rework. When in doubt, ask. When unclear, clarify. When ambiguous, seek specifics. It's better to be thorough upfront than to guess and be wrong.**
+description: Always ask for clarification when instructions are unclear or ambiguous
+globs:
+alwaysApply: true
+---

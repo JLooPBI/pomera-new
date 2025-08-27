@@ -1,0 +1,66 @@
+# Precise Instructions Rule
+
+## Core Principle
+**Only change what you are explicitly instructed to change. Do not make any modifications beyond the specific request unless they are absolutely necessary upstream/downstream dependencies.**
+
+## What This Rule Covers
+
+### Prohibited Actions
+- **No design changes**: Don't modify UI layouts, styling, or visual elements unless specifically requested
+- **No field modifications**: Don't add, remove, or change fields that weren't explicitly mentioned
+- **No architectural changes**: Don't refactor code structure unless it's required for the specific change
+- **No "improvements"**: Don't make changes you think would be better unless specifically asked
+- **No scope creep**: Don't expand the request beyond what was stated
+
+### What To Do Instead
+1. **Follow instructions exactly** - Make only the requested changes
+2. **Identify dependencies** - Only modify upstream/downstream artifacts that are absolutely necessary
+3. **Ask before expanding** - If you think additional changes would be helpful, ask first
+4. **Document limitations** - If the request can't be completed as-is, explain why and ask for clarification
+
+## Examples
+
+### ❌ WRONG - Don't Do This
+```
+User: "Change the button color to blue"
+Assistant: *Changes button color AND redesigns the entire form layout, adds new fields, and refactors the component*
+```
+
+### ✅ CORRECT - Do This Instead
+```
+User: "Change the button color to blue"
+Assistant: *Only changes the button color, nothing else*
+```
+
+## When Dependencies Are Necessary
+Only modify additional code when:
+- **Upstream changes**: The requested change requires modifying a parent component/function
+- **Downstream changes**: The requested change breaks existing functionality that depends on it
+- **Build/compilation errors**: The change creates syntax or dependency issues that must be resolved
+- **Explicit dependencies**: The user mentions related areas that need updating
+
+## Implementation Guidelines
+
+### Before Making Changes
+1. **Read the request carefully** - Understand exactly what is being asked
+2. **Identify the scope** - What files/components are directly involved
+3. **Assess dependencies** - What other code must change for this to work
+4. **Ask if unsure** - If the scope isn't clear, clarify before proceeding
+
+### During Implementation
+1. **Make minimal changes** - Only what's necessary for the request
+2. **Preserve existing functionality** - Don't break what wasn't mentioned
+3. **Document changes** - Explain what was modified and why
+4. **Test the change** - Ensure it works without affecting other areas
+
+### After Implementation
+1. **Verify scope** - Confirm only requested changes were made
+2. **Check for side effects** - Ensure no unintended consequences
+3. **Provide summary** - List exactly what was changed
+
+## Remember
+**It's better to make a small, precise change and ask for clarification than to make broad modifications that weren't requested. When in doubt, ask first.**
+description: Only change what is explicitly instructed, no modifications beyond specific requests
+globs:
+alwaysApply: true
+---

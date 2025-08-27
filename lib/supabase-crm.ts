@@ -1,28 +1,48 @@
-import { createClient } from '@supabase/supabase-js';
+// lib/supabase-crm.ts
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { supabase } from './supabase';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Type definitions
+// Types
 export interface Company {
-  company_id?: string;
+  company_id: string;
   company_name: string;
   industry?: string;
   company_size?: string;
   annual_revenue?: string;
   company_website?: string;
+  
+  // Address
   street_number?: string;
   street_name?: string;
   apt_suite?: string;
   city?: string;
   state?: string;
   zip_code?: string;
-  company_status: 'lead' | 'prospect' | 'client';
+  
+  // Contact Info (primary contact) 
+  contact_first_name?: string;
+  contact_last_name?: string;
+  contact_job_title?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contact_mobile?: string;
+  preferred_contact_method?: string;
+  
+  // Status fields
+  company_status: 'lead' | 'prospect' | 'client' | 'inactive';
+  status_id?: number;
   lead_source?: string;
+  source_id?: number;
   lead_score?: 'hot' | 'warm' | 'cold';
+  score_id?: number;
+  size_id?: number;
+  revenue_id?: number;
+  position_type_id?: number;
+  
+  // Dates
   expected_close_date?: string;
+  
+  // Opportunity
   staffing_needs_overview?: string;
   immediate_positions?: number;
   annual_positions?: number;
@@ -30,12 +50,15 @@ export interface Company {
   position_names?: string;
   position_type?: string;
   additional_staffing_details?: string;
-  created_date?: string;
-  updated_date?: string;
+  
+  // Metadata
+  created_date: string;
+  updated_date: string;
+  created_by_user_id?: string;
 }
 
 export interface CompanyContact {
-  contact_id?: string;
+  contact_id: string;
   company_id: string;
   contact_first_name: string;
   contact_last_name: string;
@@ -43,313 +66,373 @@ export interface CompanyContact {
   contact_email: string;
   contact_phone?: string;
   contact_mobile?: string;
-  preferred_contact_method: 'email' | 'phone' | 'mobile';
+  preferred_contact_method?: 'email' | 'phone' | 'mobile';
   is_primary_contact: boolean;
-  is_decision_maker: boolean;
-  is_active_contact: boolean;
-  created_date?: string;
-  updated_date?: string;
-}
-
-export interface CompanyActivity {
-  activity_id?: string;
-  company_id: string;
-  activity_type: string;
-  activity_notes: string;
-  created_by_name: string;
-  follow_up_date?: string;
-  created_date?: string;
+  created_date: string;
+  updated_date: string;
 }
 
 export interface CompanyNote {
-  note_id?: string;
+  note_id: string;
   company_id: string;
+  note_type?: string;
+  note_type_id?: number;
   note_text: string;
-  created_by_name: string;
-  created_date?: string;
+  created_date: string;
+  created_by_user_id?: string;
 }
 
-// CRM Database functions
-export const crmDatabase = {
-  // Create a new company with contact
-  async createCompany(companyData: Company, contactData: Omit<CompanyContact, 'company_id'>) {
-    try {
-      // Insert company
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert([companyData])
-        .select()
-        .single();
+export interface CompanyFile {
+  file_id: string;
+  company_id: string;
+  file_name: string;
+  file_url: string;
+  file_size?: number;
+  file_type?: string;
+  file_category?: string;
+  file_category_id?: number;
+  uploaded_date: string;
+  uploaded_by_user_id?: string;
+}
 
-      if (companyError) throw companyError;
+// Dimension Types
+export interface DimensionValue {
+  id: number;
+  name: string;
+  display_order: number;
+  is_active: boolean;
+  color?: string;
+}
 
-      // Insert primary contact
-      const { data: contact, error: contactError } = await supabase
-        .from('company_contacts')
-        .insert([{ ...contactData, company_id: company.company_id }])
-        .select()
-        .single();
+// Error handling wrapper
+async function withErrorHandling<T>(
+  operation: () => Promise<T>,
+  errorMessage: string = 'Operation failed'
+): Promise<{ data?: T; error?: string }> {
+  try {
+    const data = await operation();
+    return { data };
+  } catch (error: any) {
+    console.error(errorMessage, error);
+    return { error: error.message || errorMessage };
+  }
+}
 
-      if (contactError) throw contactError;
-
-      return { company, contact };
-    } catch (error) {
-      console.error('Error creating company:', error);
-      throw error;
-    }
-  },
-
-  // Get companies by status
-  async getCompaniesByStatus(status: string) {
-    try {
+class CRMDatabase {
+  // ==================== DIMENSION MANAGEMENT ====================
+  
+  async getDimensions(tableName: string) {
+    return withErrorHandling(async () => {
       const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+      
+      if (error) throw error;
+      
+      // Map to consistent format
+      return (data || []).map(item => ({
+        id: item.status_id || item.source_id || item.score_id || item.size_id || 
+            item.revenue_id || item.position_type_id || item.note_type_id || 
+            item.method_id || item.category_id,
+        name: item.status_name || item.source_name || item.score_name || 
+              item.size_name || item.revenue_range || item.position_type_name || 
+              item.note_type_name || item.method_name || item.category_name,
+        display_order: item.display_order,
+        is_active: item.is_active,
+        color: item.score_color || item.color
+      })) as DimensionValue[];
+    }, 'Failed to fetch dimensions');
+  }
+
+  async getCompanyStatuses() {
+    return this.getDimensions('dim_company_status');
+  }
+
+  async getLeadSources() {
+    return this.getDimensions('dim_lead_source');
+  }
+
+  async getLeadScores() {
+    return this.getDimensions('dim_lead_score');
+  }
+
+  async getCompanySizes() {
+    return this.getDimensions('dim_company_size');
+  }
+
+  async getAnnualRevenues() {
+    return this.getDimensions('dim_annual_revenue');
+  }
+
+  async getPositionTypes() {
+    return this.getDimensions('dim_position_type');
+  }
+
+  async getNoteTypes() {
+    return this.getDimensions('dim_note_type');
+  }
+
+  async getContactMethods() {
+    return this.getDimensions('dim_contact_method');
+  }
+
+  async getFileCategories() {
+    return this.getDimensions('dim_file_category');
+  }
+
+  // ==================== COMPANIES ====================
+  
+  async getCompanies(filters?: {
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    return withErrorHandling(async () => {
+      // Use the view if it exists, otherwise use the table
+      let query = supabase
         .from('companies')
-        .select(`
-          *,
-          company_contacts!inner(*)
-        `)
-        .eq('company_status', status)
+        .select('*')
         .order('created_date', { ascending: false });
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-      throw error;
-    }
-  },
+      if (filters?.status) {
+        query = query.eq('company_status', filters.status);
+      }
 
-  // Get company by ID with all related data
+      if (filters?.search) {
+        query = query.or(`company_name.ilike.%${filters.search}%,city.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`);
+      }
+
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      if (filters?.offset) {
+        query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data as Company[];
+    }, 'Failed to fetch companies');
+  }
+
   async getCompanyById(companyId: string) {
-    try {
+    return withErrorHandling(async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select(`
-          *,
-          company_contacts(*),
-          company_activities(*),
-          company_notes(*)
-        `)
-        .eq('company_id', companyId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching company:', error);
-      throw error;
-    }
-  },
-
-  // Update company status
-  async updateCompanyStatus(companyId: string, status: 'lead' | 'prospect' | 'client') {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .update({ 
-          company_status: status,
-          updated_date: new Date().toISOString()
-        })
-        .eq('company_id', companyId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating company status:', error);
-      throw error;
-    }
-  },
-
-  // Add activity to a company
-  async addActivity(companyId: string, activityType: string, notes: string, userName: string = 'User', followUpDate?: string) {
-    try {
-      const { data, error } = await supabase
-        .from('company_activities')
-        .insert([{
-          company_id: companyId,
-          activity_type: activityType,
-          activity_notes: notes,
-          created_by_name: userName,
-          follow_up_date: followUpDate,
-          created_date: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error adding activity:', error);
-      throw error;
-    }
-  },
-
-  // Add note to a company
-  async addNote(companyId: string, noteText: string, userName: string = 'User') {
-    try {
-      const { data, error } = await supabase
-        .from('company_notes')
-        .insert([{
-          company_id: companyId,
-          note_text: noteText,
-          created_by_name: userName,
-          created_date: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error adding note:', error);
-      throw error;
-    }
-  },
-
-  // Get all activities for a company
-  async getCompanyActivities(companyId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('company_activities')
         .select('*')
         .eq('company_id', companyId)
-        .order('created_date', { ascending: false });
+        .single();
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      throw error;
-    }
-  },
+      return data as Company;
+    }, 'Failed to fetch company details');
+  }
 
-  // Get all notes for a company
-  async getCompanyNotes(companyId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('company_notes')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_date', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-      throw error;
-    }
-  },
-
-  // Update company information
-  async updateCompany(companyId: string, updateData: Partial<Company>) {
-    try {
+  async createCompany(company: Partial<Company>) {
+    return withErrorHandling(async () => {
       const { data, error } = await supabase
         .from('companies')
-        .update({
-          ...updateData,
-          updated_date: new Date().toISOString()
-        })
+        .insert([company])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Company;
+    }, 'Failed to create company');
+  }
+
+  async updateCompany(companyId: string, updates: Partial<Company>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .update(updates)
         .eq('company_id', companyId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating company:', error);
-      throw error;
-    }
-  },
+      return data as Company;
+    }, 'Failed to update company');
+  }
 
-  // Add additional contact to company
-  async addContact(contactData: CompanyContact) {
-    try {
+  async deleteCompany(companyId: string) {
+    return withErrorHandling(async () => {
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+      return true;
+    }, 'Failed to delete company');
+  }
+
+  async updateCompanyStatus(companyId: string, status: Company['company_status']) {
+    return withErrorHandling(async () => {
       const { data, error } = await supabase
-        .from('company_contacts')
-        .insert([{
-          ...contactData,
-          created_date: new Date().toISOString()
-        }])
+        .from('companies')
+        .update({ company_status: status })
+        .eq('company_id', companyId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error adding contact:', error);
-      throw error;
-    }
-  },
+      return data as Company;
+    }, 'Failed to update company status');
+  }
 
-  // Update contact
-  async updateContact(contactId: string, updateData: Partial<CompanyContact>) {
-    try {
+  // ==================== CONTACTS ====================
+  
+  async getCompanyContacts(companyId: string) {
+    return withErrorHandling(async () => {
       const { data, error } = await supabase
         .from('company_contacts')
-        .update({
-          ...updateData,
-          updated_date: new Date().toISOString()
-        })
+        .select('*')
+        .eq('company_id', companyId)
+        .order('is_primary_contact', { ascending: false });
+
+      if (error) throw error;
+      return data as CompanyContact[];
+    }, 'Failed to fetch contacts');
+  }
+
+  async createContact(contact: Partial<CompanyContact>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_contacts')
+        .insert([contact])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CompanyContact;
+    }, 'Failed to create contact');
+  }
+
+  async updateContact(contactId: string, updates: Partial<CompanyContact>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_contacts')
+        .update(updates)
         .eq('contact_id', contactId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating contact:', error);
-      throw error;
-    }
-  },
+      return data as CompanyContact;
+    }, 'Failed to update contact');
+  }
 
-  // Delete company (and all related data)
-  async deleteCompany(companyId: string) {
-    try {
-      // Delete in order due to foreign key constraints
-      await supabase.from('company_activities').delete().eq('company_id', companyId);
-      await supabase.from('company_notes').delete().eq('company_id', companyId);
-      await supabase.from('company_contacts').delete().eq('company_id', companyId);
-      
-      const { data, error } = await supabase
-        .from('companies')
+  async deleteContact(contactId: string) {
+    return withErrorHandling(async () => {
+      const { error } = await supabase
+        .from('company_contacts')
         .delete()
+        .eq('contact_id', contactId);
+
+      if (error) throw error;
+      return true;
+    }, 'Failed to delete contact');
+  }
+
+  // ==================== NOTES ====================
+  
+  async getCompanyNotes(companyId: string) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_notes')
+        .select('*')
         .eq('company_id', companyId)
+        .order('created_date', { ascending: false });
+
+      if (error) throw error;
+      return data as CompanyNote[];
+    }, 'Failed to fetch notes');
+  }
+
+  async createNote(note: Partial<CompanyNote>) {
+    return withErrorHandling(async () => {
+      // If note_type is provided but not note_type_id, look it up
+      if (note.note_type && !note.note_type_id) {
+        const noteTypes = await this.getNoteTypes();
+        const noteType = noteTypes.data?.find(t => t.name === note.note_type);
+        if (noteType) {
+          note.note_type_id = noteType.id;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('company_notes')
+        .insert([note])
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error deleting company:', error);
-      throw error;
-    }
-  },
+      return data as CompanyNote;
+    }, 'Failed to create note');
+  }
 
-  // Search companies
-  async searchCompanies(searchTerm: string) {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select(`
-          *,
-          company_contacts(*)
-        `)
-        .or(`company_name.ilike.%${searchTerm}%,industry.ilike.%${searchTerm}%`)
-        .order('created_date', { ascending: false });
+  async deleteNote(noteId: string) {
+    return withErrorHandling(async () => {
+      const { error } = await supabase
+        .from('company_notes')
+        .delete()
+        .eq('note_id', noteId);
 
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error searching companies:', error);
-      throw error;
-    }
-  },
+      return true;
+    }, 'Failed to delete note');
+  }
 
-  // Get dashboard stats
-  async getDashboardStats() {
-    try {
+  // ==================== FILES ====================
+  
+  async getCompanyFiles(companyId: string) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_files')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('uploaded_date', { ascending: false });
+
+      if (error) throw error;
+      return data as CompanyFile[];
+    }, 'Failed to fetch files');
+  }
+
+  async uploadFile(file: Partial<CompanyFile>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_files')
+        .insert([file])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CompanyFile;
+    }, 'Failed to upload file');
+  }
+
+  async deleteFile(fileId: string) {
+    return withErrorHandling(async () => {
+      const { error } = await supabase
+        .from('company_files')
+        .delete()
+        .eq('file_id', fileId);
+
+      if (error) throw error;
+      return true;
+    }, 'Failed to delete file');
+  }
+
+  // ==================== STATISTICS ====================
+  
+  async getStatistics() {
+    return withErrorHandling(async () => {
       const { data: companies, error } = await supabase
         .from('companies')
         .select('company_status, opportunity_value');
@@ -357,18 +440,59 @@ export const crmDatabase = {
       if (error) throw error;
 
       const stats = {
-        totalLeads: companies.filter(c => c.company_status === 'lead').length,
-        totalProspects: companies.filter(c => c.company_status === 'prospect').length,
-        totalClients: companies.filter(c => c.company_status === 'client').length,
-        totalPipelineValue: companies
-          .filter(c => c.opportunity_value)
-          .reduce((sum, c) => sum + (c.opportunity_value || 0), 0)
+        totalLeads: 0,
+        totalProspects: 0,
+        totalClients: 0,
+        totalOpportunityValue: 0
       };
 
+      companies?.forEach(company => {
+        switch (company.company_status) {
+          case 'lead':
+            stats.totalLeads++;
+            break;
+          case 'prospect':
+            stats.totalProspects++;
+            break;
+          case 'client':
+            stats.totalClients++;
+            break;
+        }
+        stats.totalOpportunityValue += company.opportunity_value || 0;
+      });
+
       return stats;
-    } catch (error) {
-      console.error('Error getting dashboard stats:', error);
-      throw error;
-    }
+    }, 'Failed to fetch statistics');
   }
-};
+
+  // ==================== UTILITY FUNCTIONS ====================
+  
+  formatPhoneNumber(phone: string): string {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    return phone;
+  }
+
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  validateZipCode(zip: string): boolean {
+    const zipRegex = /^\d{5}(-\d{4})?$/;
+    return zipRegex.test(zip);
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+}
+
+export const crmDatabase = new CRMDatabase();

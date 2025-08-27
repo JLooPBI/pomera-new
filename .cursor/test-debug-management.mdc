@@ -1,0 +1,140 @@
+# Test and Debug Management Rule
+
+## Core Principle
+**Keep the codebase clean and focused on a single application workflow without premature testing infrastructure or environment separation.**
+
+## What This Rule Prevents
+
+### Unnecessary Test Files
+- **No test scripts**: Don't create `test-*.ts`, `test-*.js`, or similar test files unless explicitly requested
+- **No test data**: Don't create sample data files, mock datasets, or testing fixtures
+- **No test workflows**: Don't create separate testing processes or scripts that run alongside the main workflow
+- **No testing frameworks**: Don't set up Jest, Mocha, or other testing tools unless specifically needed
+
+### Premature Environment Separation
+- **No dev/prod split**: Don't create separate development and production configurations within the same codebase
+- **No staging environments**: Don't set up intermediate deployment environments or staging workflows
+- **No deployment pipelines**: Don't create CI/CD configurations, Docker setups, or deployment automation yet
+- **No environment variables**: Don't create `.env.dev`, `.env.prod`, or similar environment-specific configs
+
+### Code Clutter
+- **No debugging artifacts**: Don't leave console.log statements, debug comments, or temporary code in production
+- **No test remnants**: Don't leave test data, sample values, or experimental code in the main application
+- **No unused imports**: Don't add testing libraries or debugging tools that aren't actively being used
+
+## What To Do Instead
+
+### For Debugging
+1. **Use temporary methods**: Console logs, breakpoints, or simple debugging approaches
+2. **Keep it simple**: Use basic debugging without external tools or frameworks
+3. **Clean up after**: Remove all debugging code when the issue is resolved
+4. **Focus on the problem**: Debug the specific issue without building infrastructure around it
+
+### For Development
+1. **Single application focus**: Treat this as one unified application, not a multi-environment system
+2. **Clean workflow**: Keep the main application flow simple and focused
+3. **Remove temporary code**: Clean up any debugging or experimental code when done
+4. **Wait for instruction**: Don't add testing or deployment infrastructure until explicitly requested
+
+### For Code Organization
+1. **Main application only**: Keep all functional code in the primary application structure
+2. **No test directories**: Don't create separate testing folders or structures
+3. **No environment configs**: Don't create multiple configuration files for different environments
+4. **Single codebase**: Maintain one clean, focused codebase without branching or separation
+
+## Examples
+
+### ❌ WRONG - Don't Do This
+```typescript
+// Creating test files
+test-core-components.ts
+test-deployment-pipeline.ts
+test-fabric-architecture.ts
+
+// Environment separation
+.env.dev
+.env.prod
+config.dev.ts
+config.prod.ts
+
+// Testing infrastructure
+package.json with Jest/Mocha
+test/ directory
+__tests__/ directory
+
+// Debugging artifacts left in code
+console.log("DEBUG: User data:", userData);
+// TODO: Remove this debug code later
+```
+
+### ✅ CORRECT - Do This Instead
+```typescript
+// Single application focus
+src/
+  components/
+  services/
+  utils/
+  index.ts
+
+// Simple debugging (remove when done)
+console.log("Debugging user data issue");
+// Remove this line after fixing the bug
+
+// Single configuration
+config.ts
+.env (if needed)
+```
+
+## When This Rule Applies
+- **Always** - During active development
+- **Always** - When debugging issues
+- **Always** - When adding new features
+- **Always** - When organizing code structure
+
+## Exceptions
+**ONLY** when the user explicitly requests:
+- "Set up a testing framework"
+- "Create separate dev/prod environments"
+- "Add CI/CD pipeline"
+- "Set up staging environment"
+- "Create test suite for this component"
+
+## Implementation Guidelines
+
+### During Development
+1. **Focus on functionality**: Build the core features first
+2. **Simple debugging**: Use basic debugging methods without external tools
+3. **Clean code**: Remove temporary or experimental code when done
+4. **Single purpose**: Keep the application focused on its main workflow
+
+### When Debugging
+1. **Identify the issue**: Focus on the specific problem
+2. **Use simple tools**: Console logs, breakpoints, or basic debugging
+3. **Don't over-engineer**: Solve the immediate issue without building infrastructure
+4. **Clean up**: Remove all debugging code when resolved
+
+### Code Organization
+1. **Single structure**: Keep all code in one main application structure
+2. **No separation**: Don't create dev/prod or testing branches
+3. **Clean imports**: Only import what's actually needed
+4. **Simple config**: Use single configuration files without environment variants
+
+## Remember
+- **This is one application**: Not a multi-environment system
+- **Focus on functionality**: Build the core features before adding testing infrastructure
+- **Keep it clean**: Remove debugging code and temporary files when done
+- **Wait for instruction**: Don't create testing or deployment systems until explicitly requested
+- **Single codebase**: Maintain one clean, focused codebase without premature separation
+
+## Future Considerations
+Once the application is complete and ready for deployment:
+- The user will create separate Dev/Prod environments
+- Testing infrastructure can be added as needed
+- Deployment pipelines can be configured
+- Environment separation can be implemented
+
+But for now, **keep it simple and focused on building the core application**.
+
+---
+alwaysApply: true
+---

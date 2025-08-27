@@ -1,0 +1,136 @@
+# Unified Development Workflow Rule
+
+## Core Principle
+**During development, maintain a single unified codebase. No test/prod workflow separation. All code should be production-ready and unified. Testing artifacts should be temporary and clearly marked.**
+
+## What This Rule Prevents
+
+### No Environment Separation
+- **No test/prod splits**: Don't create separate testing and production workflows
+- **No environment-specific code**: Don't write conditional logic for different environments
+- **No test-only features**: Don't add features that only exist for testing purposes
+- **No mock implementations**: Don't create mock versions of production code
+
+### No Test Infrastructure
+- **No test frameworks**: Don't set up Jest, Mocha, or other testing tools during development
+- **No test directories**: Don't create `__tests__/`, `test/`, or similar testing folders
+- **No test configurations**: Don't create test-specific configuration files
+- **No test scripts**: Don't add test scripts to package.json during development
+
+## What To Do Instead
+
+### For Testing During Development
+1. **Virtual testing**: Create queries and scripts in memory or temporary variables
+2. **Inline testing**: Test logic directly within the development code
+3. **Console testing**: Use console.log or browser dev tools for quick validation
+4. **Manual testing**: Test features directly in the running application
+
+### When Test Files Are Necessary
+1. **Clear naming**: Use `*TEST*` prefix/suffix in filenames (e.g., `*TEST*page.tsx`, `utils*TEST*.ts`)
+2. **Temporary nature**: Mark files as temporary and disposable
+3. **Immediate cleanup**: Delete test files as soon as testing is complete
+4. **Core integration**: Extract useful logic from test files into the main codebase
+
+## Examples
+
+### ❌ WRONG - Don't Do This
+```typescript
+// Environment separation
+if (process.env.NODE_ENV === 'test') {
+  // Test-specific logic
+} else {
+  // Production logic
+}
+
+// Test directories
+src/
+  __tests__/
+  test/
+  tests/
+
+// Test-only features
+const mockUser = { id: 1, name: "Test User" };
+```
+
+### ✅ CORRECT - Do This Instead
+```typescript
+// Unified code - always production-ready
+const user = getUserFromDatabase();
+
+// Virtual testing (in memory)
+const testQuery = "SELECT * FROM users WHERE active = true";
+console.log("Testing query:", testQuery);
+
+// Temporary test file (clearly marked)
+// *TEST*user-validation.ts
+export const validateUserInput = (input: any) => {
+  // Test implementation
+};
+
+// After testing, integrate into core code and delete test file
+```
+
+## Implementation Guidelines
+
+### During Development
+1. **Write production code**: All code should be production-ready from the start
+2. **Test in place**: Test functionality directly in the running application
+3. **Use dev tools**: Leverage browser dev tools, console, and manual testing
+4. **Keep it simple**: Avoid over-engineering testing solutions
+
+### When Testing Is Needed
+1. **Virtual approach first**: Try to test without creating files
+2. **Clear marking**: Use `*TEST*` in filenames when files are necessary
+3. **Document purpose**: Add comments explaining why the test file exists
+4. **Set deletion reminder**: Note when the test file should be removed
+
+### After Testing
+1. **Extract useful logic**: Move any valuable code to the main codebase
+2. **Delete test files**: Remove all temporary testing artifacts
+3. **Update core code**: Integrate any improvements discovered during testing
+4. **Clean up**: Ensure no test remnants remain in production code
+
+## File Naming Convention
+
+### Test File Pattern
+- **Prefix**: `*TEST*` at the beginning of the filename
+- **Suffix**: `*TEST*` at the end of the filename
+- **Examples**:
+  - `*TEST*user-validation.ts`
+  - `components*TEST*Button.tsx`
+  - `utils*TEST*date-format.ts`
+
+### Temporary File Indicators
+- **Comment header**: Add clear comment explaining the file's temporary nature
+- **Deletion reminder**: Include comment with deletion date or condition
+- **Purpose statement**: Explain what is being tested
+
+## Code Integration Process
+
+### From Test to Production
+1. **Identify valuable logic**: Determine what from the test is worth keeping
+2. **Refactor for production**: Clean up and optimize the code
+3. **Integrate properly**: Place code in appropriate locations in the main codebase
+4. **Delete test file**: Remove the temporary testing artifact
+5. **Verify integration**: Ensure the integrated code works correctly
+
+### Quality Standards
+- **Production-ready**: All integrated code must meet production standards
+- **Proper error handling**: Include appropriate error handling and validation
+- **Performance optimized**: Ensure code performs well in production
+- **Well documented**: Add proper documentation and comments
+
+## Remember
+**Development is about building a unified, production-ready application. Testing is a temporary step to validate functionality, not a separate workflow. Keep everything unified and clean up after yourself.**
+
+## Success Metrics
+- **Single codebase**: No test/prod separation
+- **Clean codebase**: No test artifacts or temporary files
+- **Production-ready**: All code is immediately deployable
+- **Efficient workflow**: Testing doesn't create permanent infrastructure
+
+---
+description: Maintain unified development workflow without test/prod separation
+globs:
+alwaysApply: true
+---
