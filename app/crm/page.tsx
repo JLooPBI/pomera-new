@@ -37,7 +37,10 @@ export default function CRMPage() {
     positionTypes: [] as DimensionValue[],
     noteTypes: [] as DimensionValue[],
     contactMethods: [] as DimensionValue[],
-    fileCategories: [] as DimensionValue[]
+    contactTypes: [] as DimensionValue[],
+    addressTypes: [] as DimensionValue[],
+    fileCategories: [] as DimensionValue[],
+    industries: [] as DimensionValue[]
   });
 
   // Notes state
@@ -45,6 +48,30 @@ export default function CRMPage() {
   const [newNote, setNewNote] = useState({ 
     type: '', 
     text: '' 
+  });
+
+  // Contacts state
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [newContact, setNewContact] = useState({
+    contact_type: '',
+    first_name: '',
+    last_name: '',
+    job_title: '',
+    email: '',
+    phone: '',
+    mobile: '',
+    preferred_contact_method: 'email'
+  });
+
+  // Addresses state
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [newAddress, setNewAddress] = useState({
+    address_type: '',
+    street_name_number: '',
+    apt_suite: '',
+    city: '',
+    state: '',
+    zip_code: ''
   });
 
   // Form state with ALL original fields
@@ -56,27 +83,10 @@ export default function CRMPage() {
     annual_revenue: '',
     company_website: '',
     
-    // Address
-    street_number: '',
-    street_name: '',
-    apt_suite: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    
-    // Primary Contact
-    contact_first_name: '',
-    contact_last_name: '',
-    contact_job_title: '',
-    contact_email: '',
-    contact_phone: '',
-    contact_mobile: '',
-    preferred_contact_method: 'email',
-    
     // Lead Info
-    company_status: 'lead',
+    company_status: 'lead' as 'lead' | 'prospect' | 'client' | 'inactive',
     lead_source: '',
-    lead_score: 'warm',
+    lead_score: 'warm' as 'hot' | 'warm' | 'cold',
     expected_close_date: '',
     
     // Opportunity
@@ -104,7 +114,7 @@ export default function CRMPage() {
 
   const loadDimensions = async () => {
     try {
-      const [statuses, sources, scores, sizes, revenues, positionTypes, noteTypes, contactMethods, fileCategories] = 
+      const [statuses, sources, scores, sizes, revenues, positionTypes, noteTypes, contactMethods, contactTypes, addressTypes, fileCategories, industries] = 
         await Promise.all([
           crmDatabase.getCompanyStatuses(),
           crmDatabase.getLeadSources(),
@@ -114,7 +124,10 @@ export default function CRMPage() {
           crmDatabase.getPositionTypes(),
           crmDatabase.getNoteTypes(),
           crmDatabase.getContactMethods(),
-          crmDatabase.getFileCategories()
+          crmDatabase.getContactTypes(),
+          crmDatabase.getAddressTypes(),
+          crmDatabase.getFileCategories(),
+          crmDatabase.getIndustries()
         ]);
 
       setDimensions({
@@ -126,10 +139,28 @@ export default function CRMPage() {
         positionTypes: positionTypes.data || [],
         noteTypes: noteTypes.data || [],
         contactMethods: contactMethods.data || [],
-        fileCategories: fileCategories.data || []
+        contactTypes: contactTypes.data || [],
+        addressTypes: addressTypes.data || [],
+        fileCategories: fileCategories.data || [],
+        industries: industries.data || []
       });
     } catch (error) {
       console.error('Error loading dimensions:', error);
+      // Set fallback values so the form can still work
+      setDimensions({
+        statuses: [],
+        sources: [],
+        scores: [],
+        sizes: [],
+        revenues: [],
+        positionTypes: [],
+        noteTypes: [],
+        contactMethods: [],
+        contactTypes: [],
+        addressTypes: [],
+        fileCategories: [],
+        industries: []
+      });
     }
   };
 
@@ -232,18 +263,6 @@ export default function CRMPage() {
       return false;
     }
     
-    // Email validation
-    if (formData.contact_email && !validateEmail(formData.contact_email)) {
-      toast.error('Please enter a valid email address');
-      return false;
-    }
-    
-    // Zip code validation
-    if (formData.zip_code && !validateZipCode(formData.zip_code)) {
-      toast.error('Please enter a valid ZIP code (12345 or 12345-6789)');
-      return false;
-    }
-    
     return true;
   };
 
@@ -255,10 +274,24 @@ export default function CRMPage() {
     setSaving(true);
     try {
       const result = await crmDatabase.createCompany(formData);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
       if (result.data) {
         toast.success('Company added successfully!');
         setShowAddForm(false);
-        loadCompanies();
+        // Open the newly created company in edit mode
+        setSelectedLead(result.data);
+        setEditFormData(result.data);
+        setIsEditMode(true);
+        // Expand all sections in edit mode
+        setExpandedSections({
+          company: true,
+          opportunity: true,
+          notes: true,
+          uploads: true
+        });
         // Reset form
         setFormData({
           company_name: '',
@@ -266,22 +299,9 @@ export default function CRMPage() {
           company_size: '',
           annual_revenue: '',
           company_website: '',
-          street_number: '',
-          street_name: '',
-          apt_suite: '',
-          city: '',
-          state: '',
-          zip_code: '',
-          contact_first_name: '',
-          contact_last_name: '',
-          contact_job_title: '',
-          contact_email: '',
-          contact_phone: '',
-          contact_mobile: '',
-          preferred_contact_method: 'email',
-          company_status: 'lead',
+          company_status: 'lead' as 'lead' | 'prospect' | 'client' | 'inactive',
           lead_source: '',
-          lead_score: 'warm',
+          lead_score: 'warm' as 'hot' | 'warm' | 'cold',
           expected_close_date: '',
           staffing_needs_overview: '',
           immediate_positions: 0,
@@ -291,6 +311,9 @@ export default function CRMPage() {
           position_type: '',
           additional_staffing_details: ''
         });
+        // Reset contacts and addresses
+        setContacts([]);
+        setAddresses([]);
       }
     } catch (error) {
       console.error('Error creating company:', error);
@@ -454,14 +477,20 @@ export default function CRMPage() {
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
-                      <Input
-                        name="industry"
-                        value={formData.industry}
-                        onChange={handleInputChange}
-                      />
-                    </div>
+                                         <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                       <select
+                         name="industry"
+                         value={formData.industry}
+                         onChange={handleInputChange}
+                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                       >
+                         <option value="">Select industry</option>
+                         {dimensions.industries.map(industry => (
+                           <option key={industry.id} value={industry.name}>{industry.name}</option>
+                         ))}
+                       </select>
+                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Company Size</label>
                       <select
@@ -470,10 +499,10 @@ export default function CRMPage() {
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       >
-                        <option value="">Select size</option>
-                        {dimensions.sizes.map(size => (
-                          <option key={size.id} value={size.name}>{size.name}</option>
-                        ))}
+                                                 <option value="">Select size</option>
+                         {dimensions.sizes.map(size => (
+                           <option key={size.id} value={size.name}>{size.name}</option>
+                         ))}
                       </select>
                     </div>
                     <div>
@@ -837,71 +866,400 @@ export default function CRMPage() {
                   {expandedSections.company && (
                     <div className="pl-2">
                       {/* Company fields - view or edit mode */}
-                      {isEditMode ? (
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Edit mode fields - ALL fields editable */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                            <Input
-                              name="company_name"
-                              value={editFormData.company_name || ''}
-                              onChange={handleEditInputChange}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
-                            <Input
-                              name="industry"
-                              value={editFormData.industry || ''}
-                              onChange={handleEditInputChange}
-                            />
-                          </div>
-                          {/* Add all other company fields here in edit mode */}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* View mode - display all fields */}
-                          <div>
-                            <p className="text-sm text-gray-600">Company Size</p>
-                            <p className="font-medium">{selectedLead.company_size || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Annual Revenue</p>
-                            <p className="font-medium">{selectedLead.annual_revenue || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Website</p>
-                            <p className="font-medium">{selectedLead.company_website || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Address</p>
-                            <p className="font-medium">
-                              {[selectedLead.street_number, selectedLead.street_name, selectedLead.apt_suite]
-                                .filter(Boolean).join(' ')}<br/>
-                              {[selectedLead.city, selectedLead.state, selectedLead.zip_code]
-                                .filter(Boolean).join(', ')}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Primary Contact</p>
-                            <p className="font-medium">
-                              {[selectedLead.contact_first_name, selectedLead.contact_last_name]
-                                .filter(Boolean).join(' ')}<br/>
-                              {selectedLead.contact_job_title}<br/>
-                              {selectedLead.contact_email}<br/>
-                              {selectedLead.contact_phone}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Lead Information</p>
-                            <p className="font-medium">
-                              Source: {selectedLead.lead_source || 'Unknown'}<br/>
-                              Score: {selectedLead.lead_score || 'Not set'}<br/>
-                              Status: {selectedLead.company_status}
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                                             {isEditMode ? (
+                         <div className="grid grid-cols-2 gap-4">
+                           {/* Edit mode fields - ALL fields editable */}
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                             <Input
+                               name="company_name"
+                               value={editFormData.company_name || ''}
+                               onChange={handleEditInputChange}
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                             <select
+                               name="industry"
+                               value={editFormData.industry || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">Select industry</option>
+                               {dimensions.industries.map(industry => (
+                                 <option key={industry.id} value={industry.name}>{industry.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Company Size</label>
+                             <select
+                               name="company_size"
+                               value={editFormData.company_size || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">Select size</option>
+                               {dimensions.sizes.map(size => (
+                                 <option key={size.id} value={size.name}>{size.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Annual Revenue</label>
+                             <select
+                               name="annual_revenue"
+                               value={editFormData.annual_revenue || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">Select revenue</option>
+                               {dimensions.revenues.map(rev => (
+                                 <option key={rev.id} value={rev.name}>{rev.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                             <Input
+                               name="company_website"
+                               value={editFormData.company_website || ''}
+                               onChange={handleEditInputChange}
+                               type="url"
+                               placeholder="https://example.com"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Street Number</label>
+                             <Input
+                               name="street_number"
+                               value={editFormData.street_number || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="Number"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Street Name</label>
+                             <Input
+                               name="street_name"
+                               value={editFormData.street_name || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="Street Name"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Apt/Suite</label>
+                             <Input
+                               name="apt_suite"
+                               value={editFormData.apt_suite || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="Apt/Suite"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                             <Input
+                               name="city"
+                               value={editFormData.city || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="City"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                             <select
+                               name="state"
+                               value={editFormData.state || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">State</option>
+                               {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'].map(state => (
+                                 <option key={state} value={state}>{state}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                             <Input
+                               name="zip_code"
+                               value={editFormData.zip_code || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="ZIP Code"
+                               pattern="[0-9]{5}(-[0-9]{4})?"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Contact First Name</label>
+                             <Input
+                               name="contact_first_name"
+                               value={editFormData.contact_first_name || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="First Name"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Contact Last Name</label>
+                             <Input
+                               name="contact_last_name"
+                               value={editFormData.contact_last_name || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="Last Name"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                             <Input
+                               name="contact_job_title"
+                               value={editFormData.contact_job_title || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="Job Title"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                             <Input
+                               name="contact_email"
+                               value={editFormData.contact_email || ''}
+                               onChange={handleEditInputChange}
+                               type="email"
+                               placeholder="email@company.com"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                             <Input
+                               name="contact_phone"
+                               value={editFormData.contact_phone || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="(555) 123-4567"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                             <Input
+                               name="contact_mobile"
+                               value={editFormData.contact_mobile || ''}
+                               onChange={handleEditInputChange}
+                               placeholder="(555) 123-4567"
+                             />
+                           </div>
+                           <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Contact Method</label>
+                             <select
+                               name="preferred_contact_method"
+                               value={editFormData.preferred_contact_method || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               {dimensions.contactMethods.map(method => (
+                                 <option key={method.id} value={method.name.toLowerCase()}>{method.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
+                             <select
+                               name="lead_source"
+                               value={editFormData.lead_source || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">Select source</option>
+                               {dimensions.sources.map(source => (
+                                 <option key={source.id} value={source.name}>{source.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Lead Score</label>
+                             <select
+                               name="lead_score"
+                               value={editFormData.lead_score || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               {dimensions.scores.map(score => (
+                                 <option key={score.id} value={score.name.toLowerCase()}>{score.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label>
+                             <Input
+                               name="expected_close_date"
+                               value={editFormData.expected_close_date || ''}
+                               onChange={handleEditInputChange}
+                               type="date"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Value</label>
+                             <Input
+                               name="opportunity_value"
+                               value={editFormData.opportunity_value || ''}
+                               onChange={handleEditInputChange}
+                               type="number"
+                               min="0"
+                             />
+                           </div>
+                           <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Staffing Needs Overview</label>
+                             <textarea
+                               name="staffing_needs_overview"
+                               value={editFormData.staffing_needs_overview || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                               rows={3}
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Immediate Positions</label>
+                             <Input
+                               name="immediate_positions"
+                               value={editFormData.immediate_positions || ''}
+                               onChange={handleEditInputChange}
+                               type="number"
+                               min="0"
+                             />
+                           </div>
+                                                        <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Annual Positions</label>
+                               <Input
+                                 name="annual_positions"
+                                 value={editFormData.annual_positions || ''}
+                                 onChange={handleEditInputChange}
+                                 type="number"
+                                 min="0"
+                               />
+                             </div>
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Position Type</label>
+                             <select
+                               name="position_type"
+                               value={editFormData.position_type || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                             >
+                               <option value="">Select type</option>
+                               {dimensions.positionTypes.map(type => (
+                                 <option key={type.id} value={type.name}>{type.name}</option>
+                               ))}
+                             </select>
+                           </div>
+                           <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-gray-700 mb-1">Additional Staffing Details</label>
+                             <textarea
+                               name="additional_staffing_details"
+                               value={editFormData.additional_staffing_details || ''}
+                               onChange={handleEditInputChange}
+                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                               rows={3}
+                             />
+                           </div>
+                         </div>
+                       ) : (
+                         <div className="grid grid-cols-2 gap-4">
+                           {/* View mode - display all fields */}
+                           <div>
+                             <p className="text-sm text-gray-600">Company Name</p>
+                             <p className="font-medium">{selectedLead.company_name || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Industry</p>
+                             <p className="font-medium">{selectedLead.industry || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Company Size</p>
+                             <p className="font-medium">{selectedLead.company_size || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Annual Revenue</p>
+                             <p className="font-medium">{selectedLead.annual_revenue || 'Not specified'}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                             <p className="text-sm text-gray-600">Website</p>
+                             <p className="font-medium">{selectedLead.company_website || 'Not provided'}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                             <p className="text-sm text-gray-600">Address</p>
+                             <p className="font-medium">
+                               {[selectedLead.street_number, selectedLead.street_name, selectedLead.apt_suite]
+                                 .filter(Boolean).join(' ')}<br/>
+                               {[selectedLead.city, selectedLead.state, selectedLead.zip_code]
+                                 .filter(Boolean).join(', ')}
+                             </p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Contact First Name</p>
+                             <p className="font-medium">{selectedLead.contact_first_name || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Contact Last Name</p>
+                             <p className="font-medium">{selectedLead.contact_last_name || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Job Title</p>
+                             <p className="font-medium">{selectedLead.contact_job_title || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Email</p>
+                             <p className="font-medium">{selectedLead.contact_email || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Phone</p>
+                             <p className="font-medium">{selectedLead.contact_phone || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Mobile</p>
+                             <p className="font-medium">{selectedLead.contact_mobile || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Preferred Contact Method</p>
+                             <p className="font-medium">{selectedLead.preferred_contact_method || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Lead Source</p>
+                             <p className="font-medium">{selectedLead.lead_source || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Lead Score</p>
+                             <p className="font-medium">{selectedLead.lead_score || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Company Status</p>
+                             <p className="font-medium">{selectedLead.company_status || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Expected Close Date</p>
+                             <p className="font-medium">{selectedLead.expected_close_date || 'Not specified'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Opportunity Value</p>
+                             <p className="font-medium">{selectedLead.opportunity_value ? formatCurrency(selectedLead.opportunity_value) : 'Not specified'}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                             <p className="text-sm text-gray-600">Staffing Needs Overview</p>
+                             <p className="font-medium">{selectedLead.staffing_needs_overview || 'Not provided'}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Immediate Positions</p>
+                             <p className="font-medium">{selectedLead.immediate_positions || 0}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Annual Positions</p>
+                             <p className="font-medium">{selectedLead.annual_positions || 0}</p>
+                           </div>
+                           <div>
+                             <p className="text-sm text-gray-600">Position Type</p>
+                             <p className="font-medium">{selectedLead.position_type || 'Not specified'}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                             <p className="text-sm text-gray-600">Additional Staffing Details</p>
+                             <p className="font-medium">{selectedLead.additional_staffing_details || 'Not provided'}</p>
+                           </div>
+                         </div>
+                       )}
                     </div>
                   )}
                 </div>

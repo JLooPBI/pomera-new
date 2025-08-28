@@ -136,4 +136,213 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE
+-- =====================================================
+-- DIMENSION TABLES FOR CRM DROPDOWNS
+-- =====================================================
+
+-- Industry Dimension
+CREATE TABLE dim_industry (
+  industry_id SERIAL PRIMARY KEY,
+  industry_name VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Company Status Dimension
+CREATE TABLE dim_company_status (
+  status_id SERIAL PRIMARY KEY,
+  status_name VARCHAR(50) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Lead Source Dimension
+CREATE TABLE dim_lead_source (
+  source_id SERIAL PRIMARY KEY,
+  source_name VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Lead Score Dimension
+CREATE TABLE dim_lead_score (
+  score_id SERIAL PRIMARY KEY,
+  score_name VARCHAR(20) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  score_color VARCHAR(20),
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Company Size Dimension
+CREATE TABLE dim_company_size (
+  size_id SERIAL PRIMARY KEY,
+  size_name VARCHAR(50) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Annual Revenue Dimension
+CREATE TABLE dim_annual_revenue (
+  revenue_id SERIAL PRIMARY KEY,
+  revenue_range VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Position Type Dimension
+CREATE TABLE dim_position_type (
+  position_type_id SERIAL PRIMARY KEY,
+  position_type_name VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Note Type Dimension
+CREATE TABLE dim_note_type (
+  note_type_id SERIAL PRIMARY KEY,
+  note_type_name VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Contact Method Dimension
+CREATE TABLE dim_contact_method (
+  method_id SERIAL PRIMARY KEY,
+  method_name VARCHAR(50) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Contact Type Dimension
+CREATE TABLE dim_contact_type (
+  contact_type_id SERIAL PRIMARY KEY,
+  contact_type_name VARCHAR(50) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Address Type Dimension
+CREATE TABLE dim_address_type (
+  address_type_id SERIAL PRIMARY KEY,
+  address_type_name VARCHAR(50) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- File Category Dimension
+CREATE TABLE dim_file_category (
+  category_id SERIAL PRIMARY KEY,
+  category_name VARCHAR(100) NOT NULL UNIQUE,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
+-- INSERT DEFAULT DIMENSION VALUES
+-- =====================================================
+
+-- Industries
+INSERT INTO dim_industry (industry_name, display_order) VALUES 
+  ('Skilled Nursing', 1),
+  ('Long Term Care', 2),
+  ('Vendor for Post-Acute', 3),
+  ('Assisted Living', 4),
+  ('Multi-Specialty Clinic', 5),
+  ('Hospital', 6),
+  ('Other', 7);
+
+-- Company Statuses
+INSERT INTO dim_company_status (status_name, display_order) VALUES 
+  ('lead', 1),
+  ('prospect', 2),
+  ('client', 3),
+  ('inactive', 4);
+
+-- Lead Sources
+INSERT INTO dim_lead_source (source_name, display_order) VALUES 
+  ('Website', 1),
+  ('Referral', 2),
+  ('Cold Call', 3),
+  ('Trade Show', 4),
+  ('Social Media', 5),
+  ('Email Campaign', 6),
+  ('Other', 7);
+
+-- Lead Scores
+INSERT INTO dim_lead_score (score_name, display_order, score_color) VALUES 
+  ('hot', 1, 'red'),
+  ('warm', 2, 'orange'),
+  ('cold', 3, 'blue');
+
+-- Company Sizes
+INSERT INTO dim_company_size (size_name, display_order) VALUES 
+  ('1-10 employees', 1),
+  ('11-50 employees', 2),
+  ('51-200 employees', 3),
+  ('201-500 employees', 4),
+  ('501-1000 employees', 5),
+  ('1000+ employees', 6);
+
+-- Annual Revenues
+INSERT INTO dim_annual_revenue (revenue_range, display_order) VALUES 
+  ('Under $1M', 1),
+  ('$1M - $5M', 2),
+  ('$5M - $10M', 3),
+  ('$10M - $25M', 4),
+  ('$25M - $50M', 5),
+  ('$50M - $100M', 6),
+  ('$100M+', 7);
+
+-- Position Types
+INSERT INTO dim_position_type (position_type_name, display_order) VALUES 
+  ('Temporary', 1),
+  ('Contract', 2),
+  ('Direct Hire', 3),
+  ('Contract-to-Hire', 4);
+
+-- Note Types
+INSERT INTO dim_note_type (note_type_name, display_order) VALUES 
+  ('Call', 1),
+  ('Email', 2),
+  ('Meeting', 3),
+  ('Follow-up', 4),
+  ('Proposal', 5),
+  ('Other', 6);
+
+-- Contact Methods
+INSERT INTO dim_contact_method (method_name, display_order) VALUES 
+  ('Email', 1),
+  ('Phone', 2),
+  ('Mobile', 3);
+
+-- File Categories
+INSERT INTO dim_file_category (category_name, display_order) VALUES 
+  ('Contract', 1),
+  ('Proposal', 2),
+  ('Resume', 3),
+  ('Reference', 4),
+  ('Other', 5);
+
+-- =====================================================
+-- TRIGGERS FOR UPDATED_DATE
+-- =====================================================
+
+CREATE TRIGGER update_companies_updated_date 
+  BEFORE UPDATE ON companies 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_date_column();
+
+CREATE TRIGGER update_company_contacts_updated_date 
+  BEFORE UPDATE ON company_contacts 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_date_column();

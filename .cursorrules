@@ -1,0 +1,22 @@
+# Cursor Rules for Pomera Care Project
+
+## 1. Unified Development Workflow Rule
+During development, the project should have no separate test or production workflows. All code should be unified. Testing scripts should preferably be virtual, or if actual files are created they should include "*TEST*" in the filename and be deleted once testing is completed and logic is merged into the core code.
+
+## 2. Precise Instructions Rule
+Only change what you are explicitly instructed to change. Do not make any modifications beyond the specific request unless they are absolutely necessary upstream/downstream dependencies. No design changes, field modifications, or architectural changes unless specifically requested.
+
+## 3. Clarification First Rule
+When instructions are unclear or ambiguous, ask for clarification before proceeding. It's better to take 30 seconds to get it right than to waste time on incorrect implementations. Ask specific questions about scope, technical decisions, and business logic.
+
+## 4. No Fake Data Rule
+NEVER insert fake, placeholder, or sample data into any workflow, application, or code unless explicitly instructed to do so. Use empty values, null, or undefined instead of fake content. Show clear error messages when data is missing.
+
+## 5. Test and Debug Management Rule
+Keep the codebase clean and focused on a single application workflow without premature testing infrastructure or environment separation. No test files, testing frameworks, or dev/prod splits unless explicitly requested. Remove debugging code when issues are resolved.
+
+## 6. Direct Communication Rule
+No excessive compliments or unnecessary praise. Use direct and efficient communication style. Provide honest feedback with clear reasoning. Maintain professional tone focused on work, not social pleasantries.
+
+## 7. Agent Communication Rule
+Always check agent messages for changes prior to executing work, and inform other agents/modules of any code changes that could impact them. Maintain proper coordination between all system components to prevent conflicts and ensure seamless integration.

@@ -113,8 +113,33 @@ async function withErrorHandling<T>(
     const data = await operation();
     return { data };
   } catch (error: any) {
-    console.error(errorMessage, error);
-    return { error: error.message || errorMessage };
+    // Enhanced error logging for debugging
+    console.error(`${errorMessage}:`, {
+      error: error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    // Return more descriptive error messages
+    let errorMsg = errorMessage;
+    if (error && typeof error === 'object') {
+      if (error.message) {
+        errorMsg += `: ${error.message}`;
+      }
+      if (error.details) {
+        errorMsg += ` (${error.details})`;
+      }
+      if (error.hint) {
+        errorMsg += ` - Hint: ${error.hint}`;
+      }
+    } else if (error) {
+      errorMsg += `: ${String(error)}`;
+    }
+    
+    return { error: errorMsg };
   }
 }
 
@@ -178,8 +203,20 @@ class CRMDatabase {
     return this.getDimensions('dim_contact_method');
   }
 
+  async getContactTypes() {
+    return this.getDimensions('dim_contact_type');
+  }
+
+  async getAddressTypes() {
+    return this.getDimensions('dim_address_type');
+  }
+
   async getFileCategories() {
     return this.getDimensions('dim_file_category');
+  }
+
+  async getIndustries() {
+    return this.getDimensions('dim_industry');
   }
 
   // ==================== COMPANIES ====================
@@ -235,14 +272,59 @@ class CRMDatabase {
 
   async createCompany(company: Partial<Company>) {
     return withErrorHandling(async () => {
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([company])
-        .select()
-        .single();
+      // Log the data being sent for debugging
+      console.log('Creating company with data:', company);
+      
+      // Validate required fields
+      if (!company.company_name) {
+        throw new Error('Company name is required');
+      }
+      
+      // Ensure company_status has a default value
+      if (!company.company_status) {
+        company.company_status = 'lead';
+      }
+      
+      // Clean up empty date fields - convert empty strings to null
+      const cleanedCompany = { ...company };
+      if (cleanedCompany.expected_close_date === '') {
+        cleanedCompany.expected_close_date = null;
+      }
+      
+      // Add timestamps
+      const now = new Date().toISOString();
+      const companyData = {
+        ...cleanedCompany,
+        created_date: now,
+        updated_date: now
+      };
+      
+      console.log('Final company data to insert:', companyData);
+      
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .insert([companyData])
+          .select()
+          .single();
 
-      if (error) throw error;
-      return data as Company;
+        if (error) {
+          console.error('Supabase error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            fullError: error
+          });
+          throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+        }
+        
+        console.log('Company created successfully:', data);
+        return data as Company;
+      } catch (error) {
+        console.error('Exception during company creation:', error);
+        throw error;
+      }
     }, 'Failed to create company');
   }
 

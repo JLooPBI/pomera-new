@@ -1,43 +1,77 @@
-# Pomera Care Database Schema
+# Pomera Care Database Setup
 
-## Overview
-This directory contains the complete database schema for the Pomera Care Recruitment Platform built on Supabase.
+This directory contains the database schema for the Pomera Care recruitment platform.
 
-## Files
-- `schema.sql` - Complete database schema with all tables, indexes, and policies
-- `README.md` - This documentation file
+## Database Schema Files
 
-## Database Structure
+- **`schema.sql`** - Complete database schema with all tables, indexes, and sample data
+- **`README.md`** - This file with setup instructions
 
-### Tables
-1. **companies** - Main CRM entity storing leads, prospects, and clients
-2. **company_contacts** - Contact information for each company (multiple contacts per company)
-3. **company_notes** - Dynamic notes system for tracking communications
-4. **company_files** - Secure document storage with categorization
+## CRM Module Database Requirements
 
-### Key Features
-- UUID primary keys for security
-- Row Level Security (RLS) enabled
-- Automatic timestamp updates
-- Foreign key constraints for data integrity
-- Performance indexes on frequently queried fields
+The CRM module requires the following database structure:
 
-## Supabase Configuration
-- Project Name: pomera-care
-- Environment: Production
-- Auth: Enabled with Google OAuth (planned)
-- Storage: Enabled for file uploads (planned)
+### Core Tables
+1. **`companies`** - Main company/lead records
+2. **`company_contacts`** - Contact information for companies
+3. **`company_notes`** - Activity tracking and notes
+4. **`company_files`** - Document storage
 
-## Deployment Instructions
-1. Log into Supabase dashboard
-2. Navigate to SQL Editor
-3. Run the complete schema.sql file
-4. Verify all tables and policies are created
+### Dimension Tables (Required for Dropdowns)
+1. **`dim_company_status`** - Lead, Prospect, Client, Inactive
+2. **`dim_lead_source`** - Website, Referral, Cold Call, etc.
+3. **`dim_lead_score`** - Hot, Warm, Cold
+4. **`dim_company_size`** - Employee count ranges
+5. **`dim_annual_revenue`** - Revenue ranges
+6. **`dim_position_type`** - Temporary, Contract, Direct Hire
+7. **`dim_note_type`** - Call, Email, Meeting, etc.
+8. **`dim_contact_method`** - Email, Phone, Mobile
+9. **`dim_file_category`** - Contract, Proposal, Resume, etc.
 
-## Environment Variables Required
-- NEXT_PUBLIC_SUPABASE_URL=your_project_url
-- NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-- SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+## Setup Instructions
 
-## Data Flow
-Lead → Prospect → Client workflow with status tracking and opportunity management.
+### 1. Create Database
+```sql
+-- Create the database (if not exists)
+CREATE DATABASE pomera_care;
+```
+
+### 2. Run Schema
+```sql
+-- Connect to the database and run the complete schema
+\i schema.sql
+```
+
+### 3. Verify Setup
+```sql
+-- Check that all tables were created
+\dt
+
+-- Verify dimension tables have data
+SELECT * FROM dim_company_status;
+SELECT * FROM dim_lead_source;
+SELECT * FROM dim_lead_score;
+```
+
+## Environment Variables
+
+Ensure these environment variables are set in your `.env.local` file:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Common Issues
+
+### "Failed to create company" Error
+This usually indicates:
+1. Database connection issues
+2. Missing environment variables
+3. Permission issues with the database
+
+## Database Maintenance
+
+- **Backup**: Regular backups of the database
+- **Updates**: Run schema updates carefully, testing in development first
+- **Performance**: Monitor query performance, especially for large datasets
