@@ -148,27 +148,103 @@ class CRMDatabase {
   
   async getDimensions(tableName: string) {
     return withErrorHandling(async () => {
+      console.log(`Fetching dimensions from table: ${tableName}`);
+      
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
         .eq('is_active', true)
         .order('display_order');
       
-      if (error) throw error;
+      console.log(`Supabase response for ${tableName}:`, { data, error });
       
-      // Map to consistent format
-      return (data || []).map(item => ({
-        id: item.status_id || item.source_id || item.score_id || item.size_id || 
-            item.revenue_id || item.position_type_id || item.note_type_id || 
-            item.method_id || item.category_id,
-        name: item.status_name || item.source_name || item.score_name || 
-              item.size_name || item.revenue_range || item.position_type_name || 
-              item.note_type_name || item.method_name || item.category_name,
-        display_order: item.display_order,
-        is_active: item.is_active,
-        color: item.score_color || item.color
-      })) as DimensionValue[];
-    }, 'Failed to fetch dimensions');
+      if (error) {
+        console.error(`Supabase error for ${tableName}:`, error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.log(`No data returned for ${tableName}`);
+        return [];
+      }
+      
+      console.log(`Raw data for ${tableName}:`, data);
+      
+      // Map to consistent format based on table name
+      const mappedData = (data || []).map(item => {
+        let id: number;
+        let name: string;
+        
+        // Determine ID and name columns based on table name
+        switch (tableName) {
+          case 'dim_company_status':
+            id = item.status_id;
+            name = item.status_name;
+            break;
+          case 'dim_lead_source':
+            id = item.source_id;
+            name = item.source_name;
+            break;
+          case 'dim_lead_score':
+            id = item.score_id;
+            name = item.score_name;
+            break;
+          case 'dim_company_size':
+            id = item.size_id;
+            name = item.size_name;
+            break;
+          case 'dim_annual_revenue':
+            id = item.revenue_id;
+            name = item.revenue_range;
+            break;
+          case 'dim_position_type':
+            id = item.position_type_id;
+            name = item.position_type_name;
+            break;
+          case 'dim_note_type':
+            id = item.note_type_id;
+            name = item.note_type_name;
+            break;
+          case 'dim_contact_method':
+            id = item.method_id;
+            name = item.method_name;
+            break;
+          case 'dim_contact_type':
+            id = item.contact_type_id;
+            name = item.contact_type_name;
+            break;
+          case 'dim_address_type':
+            id = item.address_type_id;
+            name = item.address_type_name;
+            break;
+          case 'dim_file_category':
+            id = item.category_id;
+            name = item.category_name;
+            break;
+          case 'dim_industry':
+            id = item.industry_id;
+            name = item.industry_name;
+            break;
+          default:
+            id = item.id || 0;
+            name = item.name || 'Unknown';
+        }
+        
+        const mappedItem = {
+          id,
+          name,
+          display_order: item.display_order,
+          is_active: item.is_active,
+          color: item.score_color || item.color
+        };
+        
+        console.log(`Mapped item for ${tableName}:`, mappedItem);
+        return mappedItem;
+      }) as DimensionValue[];
+      
+      console.log(`Final mapped data for ${tableName}:`, mappedData);
+      return mappedData;
+    }, `Failed to fetch dimensions from ${tableName}`);
   }
 
   async getCompanyStatuses() {
@@ -218,6 +294,8 @@ class CRMDatabase {
   async getIndustries() {
     return this.getDimensions('dim_industry');
   }
+
+
 
   // ==================== COMPANIES ====================
   
@@ -447,6 +525,35 @@ class CRMDatabase {
           note.note_type_id = noteType.id;
         }
       }
+
+      const { data, error } = await supabase
+        .from('company_notes')
+        .insert([note])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CompanyNote;
+    }, 'Failed to create note');
+  }
+
+  async addNote(companyId: string, noteData: { type: string; text: string }) {
+    return withErrorHandling(async () => {
+      // Look up the note type ID
+      const noteTypes = await this.getNoteTypes();
+      const noteType = noteTypes.data?.find(t => t.name === noteData.type);
+      
+      if (!noteType) {
+        throw new Error('Invalid note type');
+      }
+
+      const note = {
+        company_id: companyId,
+        note_type: noteData.type,
+        note_type_id: noteType.id,
+        note_text: noteData.text,
+        created_date: new Date().toISOString()
+      };
 
       const { data, error } = await supabase
         .from('company_notes')

@@ -20,3 +20,13 @@ No excessive compliments or unnecessary praise. Use direct and efficient communi
 
 ## 7. Agent Communication Rule
 Always check agent messages for changes prior to executing work, and inform other agents/modules of any code changes that could impact them. Maintain proper coordination between all system components to prevent conflicts and ensure seamless integration.
+
+## 8. Database Documentation Rule
+Whenever database schema changes are made (new tables, modified fields, new relationships, etc.), the DATA_DICTIONARY.md file must be updated to reflect these changes. This includes:
+- Adding new table descriptions with business logic and usage
+- Updating existing table documentation for modified fields
+- Documenting new business rules and relationships
+- Updating application usage sections
+- Adding entries to the version history table
+- Ensuring all foreign key relationships are documented
+- Updating sample values for dimension tables if changed

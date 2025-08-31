@@ -327,6 +327,27 @@ INSERT INTO dim_contact_method (method_name, display_order) VALUES
   ('Phone', 2),
   ('Mobile', 3);
 
+-- Contact Types
+INSERT INTO dim_contact_type (contact_type_name, display_order) VALUES 
+  ('Primary Contact', 1),
+  ('Decision Maker', 2),
+  ('Technical Contact', 3),
+  ('Billing Contact', 4),
+  ('Secondary Contact', 5),
+  ('Influencer', 6),
+  ('Gatekeeper', 7),
+  ('Other', 8);
+
+-- Address Types
+INSERT INTO dim_address_type (address_type_name, display_order) VALUES 
+  ('Billing Address', 1),
+  ('Shipping Address', 2),
+  ('Main Office', 3),
+  ('Branch Office', 4),
+  ('Remote Office', 5),
+  ('Home Office', 6),
+  ('Other', 7);
+
 -- File Categories
 INSERT INTO dim_file_category (category_name, display_order) VALUES 
   ('Contract', 1),
