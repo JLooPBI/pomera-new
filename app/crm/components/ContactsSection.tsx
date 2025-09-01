@@ -73,6 +73,19 @@ export default function ContactsSection({
     <div className="mb-6">
       <h3 className="text-lg font-semibold mb-4">Contacts</h3>
       <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
+          <select
+            value={newContact.contact_type}
+            onChange={(e) => setNewContact({ ...newContact, contact_type: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="">Select contact type</option>
+            {contactTypes.map(type => (
+              <option key={type.id} value={type.name}>{type.name}</option>
+            ))}
+          </select>
+        </div>
         <Input
           placeholder="First Name"
           value={newContact.contact_first_name}
@@ -119,6 +132,7 @@ export default function ContactsSection({
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <p className="font-medium">{contact.contact_first_name} {contact.contact_last_name}</p>
+                  {contact.contact_type && <p className="text-sm text-gray-500">({contact.contact_type})</p>}
                   <p className="text-sm text-gray-600">{contact.contact_job_title}</p>
                   <p className="text-sm">{contact.contact_email}</p>
                   {contact.contact_phone && <p className="text-sm">{contact.contact_phone}</p>}

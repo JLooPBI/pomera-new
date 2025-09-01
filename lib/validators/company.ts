@@ -10,12 +10,22 @@ export const companySchema = z.object({
   company_website: z.string().url('Invalid URL').optional().or(z.literal('')),
   
   // Address
-  street_number: z.string().max(20).optional(),
-  street_name: z.string().max(255).optional(),
+  street_address: z.string().max(255).optional(),
+  address_type: z.string().max(50).optional(),
   apt_suite: z.string().max(50).optional(),
   city: z.string().max(100).optional(),
   state: z.string().length(2, 'State must be 2 characters').optional(),
   zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid zip code').optional(),
+  
+  // Contact fields
+  contact_first_name: z.string().max(100).optional(),
+  contact_last_name: z.string().max(100).optional(),
+  contact_job_title: z.string().max(150).optional(),
+  contact_email: z.string().email('Invalid email address').optional(),
+  contact_phone: z.string().optional(),
+  contact_mobile: z.string().optional(),
+  preferred_contact_method: z.enum(['email', 'phone', 'mobile']).default('email'),
+  contact_type: z.string().max(50).optional(),
   
   // CRM fields
   company_status: z.enum(['lead', 'prospect', 'client', 'inactive']).default('lead'),

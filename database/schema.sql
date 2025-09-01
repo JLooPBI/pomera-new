@@ -14,12 +14,22 @@ CREATE TABLE companies (
   company_website VARCHAR(255),
   
   -- Address fields
-  street_number VARCHAR(20),
-  street_name VARCHAR(255),
+  street_address VARCHAR(255),
   apt_suite VARCHAR(50),
   city VARCHAR(100),
   state VARCHAR(2),
   zip_code VARCHAR(10),
+  address_type VARCHAR(50),
+  
+  -- Primary Contact Info
+  contact_first_name VARCHAR(100),
+  contact_last_name VARCHAR(100),
+  contact_job_title VARCHAR(150),
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(20),
+  contact_mobile VARCHAR(20),
+  preferred_contact_method VARCHAR(20) DEFAULT 'email',
+  contact_type VARCHAR(50),
   
   -- CRM pipeline fields
   company_status VARCHAR(20) NOT NULL DEFAULT 'lead',

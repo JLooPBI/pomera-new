@@ -40,6 +40,44 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 
 **Related Tables**: `company_contacts`, `company_notes`, `company_files`
 
+**Field Details**:
+| Field Name | Type | Description | Business Usage |
+|------------|------|-------------|----------------|
+| `company_id` | UUID | Primary key, auto-generated | Unique identifier for all relationships |
+| `company_name` | VARCHAR(255) | Company name (required) | Primary display field, search key |
+| `industry` | VARCHAR(100) | Industry classification | Filtering, reporting, market analysis |
+| `company_size` | VARCHAR(50) | Employee count range | Sales targeting, opportunity sizing |
+| `annual_revenue` | VARCHAR(50) | Revenue range | Sales prioritization, opportunity value |
+| `company_website` | VARCHAR(255) | Company website URL | Research, contact information |
+| `street_address` | VARCHAR(255) | Combined street address | Location tracking, shipping/billing |
+| `apt_suite` | VARCHAR(50) | Apartment/suite number | Detailed address information |
+| `city` | VARCHAR(100) | City name | Geographic filtering, reporting |
+| `state` | VARCHAR(2) | State abbreviation | Geographic filtering, reporting |
+| `zip_code` | VARCHAR(10) | ZIP code (5 or 9 digits) | Geographic filtering, reporting |
+| `address_type` | VARCHAR(50) | Address classification | Address organization, billing vs shipping |
+| `contact_first_name` | VARCHAR(100) | Primary contact first name | Communication, relationship management |
+| `contact_last_name` | VARCHAR(100) | Primary contact last name | Communication, relationship management |
+| `contact_job_title` | VARCHAR(150) | Primary contact job title | Role identification, decision making |
+| `contact_email` | VARCHAR(255) | Primary contact email | Primary communication method |
+| `contact_phone` | VARCHAR(20) | Primary contact phone | Alternative communication method |
+| `contact_mobile` | VARCHAR(20) | Primary contact mobile | Alternative communication method |
+| `preferred_contact_method` | VARCHAR(20) | Preferred communication | Communication strategy |
+| `contact_type` | VARCHAR(50) | Contact role classification | Contact organization, relationship mapping |
+| `company_status` | VARCHAR(20) | Pipeline status (required) | CRM pipeline management, reporting |
+| `lead_source` | VARCHAR(50) | Lead origin | Marketing effectiveness, source tracking |
+| `lead_score` | VARCHAR(20) | Lead priority/urgency | Sales prioritization, follow-up scheduling |
+| `expected_close_date` | DATE | Expected conversion date | Sales forecasting, pipeline management |
+| `staffing_needs_overview` | TEXT | Staffing requirements summary | Opportunity assessment, resource planning |
+| `immediate_positions` | INTEGER | Immediate hiring needs | Urgency assessment, resource allocation |
+| `annual_positions` | INTEGER | Annual hiring projection | Long-term planning, capacity assessment |
+| `opportunity_value` | DECIMAL(12,2) | Financial opportunity value | Sales prioritization, revenue forecasting |
+| `position_names` | TEXT | Specific position titles | Detailed opportunity information |
+| `position_type` | VARCHAR(50) | Position classification | Resource planning, skill matching |
+| `additional_staffing_details` | TEXT | Additional requirements | Comprehensive opportunity assessment |
+| `created_date` | TIMESTAMP | Record creation date | Audit trail, reporting |
+| `updated_date` | TIMESTAMP | Last modification date | Audit trail, change tracking |
+| `created_by_user_id` | UUID | User who created record | Audit trail, accountability |
+
 ---
 
 ### 2. `company_contacts` - Contact Management
@@ -413,7 +451,8 @@ companies (1) ←→ (many) company_files
 | Date | Version | Changes |
 |------|---------|---------|
 | Initial | 1.0 | Initial data dictionary creation |
-| Current | 1.0 | Complete documentation of all tables and relationships |
+| 2024-01-XX | 1.1 | Added address_type and contact_type fields to companies table, combined street_number and street_name into street_address |
+| Current | 1.1 | Complete documentation of all tables and relationships with enhanced address and contact management |
 
 ---
 

@@ -78,6 +78,19 @@ export default function AddressesSection({
     <div className="mb-6">
       <h3 className="text-lg font-semibold mb-4">Addresses</h3>
       <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+          <select
+            value={newAddress.address_type}
+            onChange={(e) => setNewAddress({ ...newAddress, address_type: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="">Select address type</option>
+            {addressTypes.map(type => (
+              <option key={type.id} value={type.name}>{type.name}</option>
+            ))}
+          </select>
+        </div>
         <Input
           placeholder="Street Name & Number"
           value={newAddress.street_name_number}
@@ -117,6 +130,7 @@ export default function AddressesSection({
             <div key={address.id || index} className="border rounded p-3 bg-gray-50">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
+                  {address.address_type && <p className="text-sm text-gray-500">({address.address_type})</p>}
                   <p className="font-medium">{address.street_name_number}</p>
                   {address.apt_suite && <p className="text-sm text-gray-600">Apt/Suite: {address.apt_suite}</p>}
                   <p className="text-sm">{address.city}, {address.state} {address.zip_code}</p>

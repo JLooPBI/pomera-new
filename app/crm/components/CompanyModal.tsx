@@ -225,22 +225,27 @@ export default function CompanyModal({
                         placeholder="www.example.com or https://example.com"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Number</label>
-                      <Input
-                        name="street_number"
-                        value={editFormData.street_number || ''}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+                      <select
+                        name="address_type"
+                        value={editFormData.address_type || ''}
                         onChange={handleEditInputChange}
-                        placeholder="Number"
-                      />
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select address type</option>
+                        {dimensions.addressTypes.map(type => (
+                          <option key={type.id} value={type.name}>{type.name}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Name</label>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
                       <Input
-                        name="street_name"
-                        value={editFormData.street_name || ''}
+                        name="street_address"
+                        value={editFormData.street_address || ''}
                         onChange={handleEditInputChange}
-                        placeholder="Street Name"
+                        placeholder="123 Main Street"
                       />
                     </div>
                     <div>
@@ -340,7 +345,21 @@ export default function CompanyModal({
                         placeholder="(555) 123-4567"
                       />
                     </div>
-                    <div className="md:col-span-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
+                      <select
+                        name="contact_type"
+                        value={editFormData.contact_type || ''}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select contact type</option>
+                        {dimensions.contactTypes.map(type => (
+                          <option key={type.id} value={type.name}>{type.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Contact Method</label>
                       <select
                         name="preferred_contact_method"
@@ -480,8 +499,9 @@ export default function CompanyModal({
                     <div className="md:col-span-2">
                       <p className="text-sm text-gray-600">Address</p>
                       <p className="font-medium">
-                        {[company.street_number, company.street_name, company.apt_suite]
-                          .filter(Boolean).join(' ')}<br/>
+                        {company.address_type && <span className="text-gray-500 text-xs">({company.address_type})</span>}<br/>
+                        {company.street_address}<br/>
+                        {company.apt_suite && <span>{company.apt_suite}<br/></span>}
                         {[company.city, company.state, company.zip_code]
                           .filter(Boolean).join(', ')}
                       </p>
@@ -509,6 +529,10 @@ export default function CompanyModal({
                     <div>
                       <p className="text-sm text-gray-600">Mobile</p>
                       <p className="font-medium">{company.contact_mobile || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Contact Type</p>
+                      <p className="font-medium">{company.contact_type || 'Not specified'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Preferred Contact Method</p>

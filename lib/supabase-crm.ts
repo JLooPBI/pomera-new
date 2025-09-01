@@ -12,12 +12,12 @@ export interface Company {
   company_website?: string;
   
   // Address
-  street_number?: string;
-  street_name?: string;
+  street_address?: string;
   apt_suite?: string;
   city?: string;
   state?: string;
   zip_code?: string;
+  address_type?: string;
   
   // Contact Info (primary contact) 
   contact_first_name?: string;
@@ -27,6 +27,7 @@ export interface Company {
   contact_phone?: string;
   contact_mobile?: string;
   preferred_contact_method?: string;
+  contact_type?: string;
   
   // Status fields
   company_status: 'lead' | 'prospect' | 'client' | 'inactive';

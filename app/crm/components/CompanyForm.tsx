@@ -46,12 +46,12 @@ export default function CompanyForm({
     company_website: '',
     
     // Address fields
-    street_number: '',
-    street_name: '',
+    street_address: '',
     apt_suite: '',
     city: '',
     state: '',
     zip_code: '',
+    address_type: '',
     
     // Contact fields
     contact_first_name: '',
@@ -61,6 +61,7 @@ export default function CompanyForm({
     contact_phone: '',
     contact_mobile: '',
     preferred_contact_method: 'email',
+    contact_type: '',
     
     // Lead Info
     company_status: 'lead' as 'lead' | 'prospect' | 'client' | 'inactive',
@@ -272,17 +273,26 @@ export default function CompanyForm({
         <div className="mb-6">
           <h4 className="font-medium text-gray-900 border-b pb-2 mb-4">Address</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                name="street_number"
-                placeholder="Number"
-                value={formData.street_number}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+              <select
+                name="address_type"
+                value={formData.address_type}
                 onChange={handleInputChange}
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select address type</option>
+                {dimensions.addressTypes.map(type => (
+                  <option key={type.id} value={type.name}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
               <Input
-                name="street_name"
-                placeholder="Street Name"
-                value={formData.street_name}
+                name="street_address"
+                placeholder="123 Main Street"
+                value={formData.street_address}
                 onChange={handleInputChange}
               />
             </div>
@@ -362,7 +372,21 @@ export default function CompanyForm({
               value={formData.contact_mobile}
               onChange={handleInputChange}
             />
-            <div className="md:col-span-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
+              <select
+                name="contact_type"
+                value={formData.contact_type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select contact type</option>
+                {dimensions.contactTypes.map(type => (
+                  <option key={type.id} value={type.name}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Contact Method</label>
               <select
                 name="preferred_contact_method"
