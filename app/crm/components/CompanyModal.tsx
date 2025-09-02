@@ -367,8 +367,9 @@ export default function CompanyModal({
                         onChange={handleEditInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       >
+                        <option value="">Select method</option>
                         {dimensions.contactMethods.map(method => (
-                          <option key={method.id} value={method.name.toLowerCase()}>{method.name}</option>
+                          <option key={method.id} value={method.name}>{method.name}</option>
                         ))}
                       </select>
                     </div>
@@ -394,8 +395,9 @@ export default function CompanyModal({
                         onChange={handleEditInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       >
+                        <option value="">Select lead score</option>
                         {dimensions.scores.map(score => (
-                          <option key={score.id} value={score.name.toLowerCase()}>{score.name}</option>
+                          <option key={score.id} value={score.name}>{score.name}</option>
                         ))}
                       </select>
                     </div>
@@ -544,7 +546,16 @@ export default function CompanyModal({
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Lead Score</p>
-                      <p className="font-medium">{company.lead_score || 'Not specified'}</p>
+                      <p className="font-medium">
+                        {company.lead_score ? 
+                          (dimensions.scores.find(s => 
+                            s.name.toLowerCase() === company.lead_score?.toLowerCase() ||
+                            s.name.toLowerCase().includes(company.lead_score?.toLowerCase() || '') ||
+                            company.lead_score?.toLowerCase().includes(s.name.toLowerCase())
+                          )?.name || company.lead_score) 
+                          : 'Not specified'
+                        }
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Company Status</p>
@@ -640,6 +651,7 @@ export default function CompanyModal({
                   companyId={company.company_id}
                   notes={notes}
                   noteTypes={dimensions.noteTypes}
+                  contactMethods={dimensions.contactMethods}
                   onNotesChange={onNotesChange}
                   saving={saving}
                 />

@@ -12,24 +12,7 @@ CREATE TABLE companies (
   company_size VARCHAR(50),
   annual_revenue VARCHAR(50),
   company_website VARCHAR(255),
-  
-  -- Address fields
-  street_address VARCHAR(255),
-  apt_suite VARCHAR(50),
-  city VARCHAR(100),
-  state VARCHAR(2),
-  zip_code VARCHAR(10),
-  address_type VARCHAR(50),
-  
-  -- Primary Contact Info
-  contact_first_name VARCHAR(100),
-  contact_last_name VARCHAR(100),
-  contact_job_title VARCHAR(150),
-  contact_email VARCHAR(255),
-  contact_phone VARCHAR(20),
-  contact_mobile VARCHAR(20),
-  preferred_contact_method VARCHAR(20) DEFAULT 'email',
-  contact_type VARCHAR(50),
+  tin VARCHAR(20),
   
   -- CRM pipeline fields
   company_status VARCHAR(20) NOT NULL DEFAULT 'lead',
@@ -55,12 +38,35 @@ CREATE TABLE companies (
 );
 
 -- =====================================================
+-- COMPANY ADDRESSES TABLE
+-- =====================================================
+CREATE TABLE company_addresses (
+  address_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(company_id) ON DELETE CASCADE,
+  
+  address_type VARCHAR(50) NOT NULL,
+  street_address VARCHAR(255),
+  apt_suite VARCHAR(50),
+  city VARCHAR(100),
+  state VARCHAR(2),
+  zip_code VARCHAR(10),
+  
+  is_primary_address BOOLEAN DEFAULT FALSE,
+  is_billing_address BOOLEAN DEFAULT FALSE,
+  is_shipping_address BOOLEAN DEFAULT FALSE,
+  
+  created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
 -- COMPANY CONTACTS TABLE
 -- =====================================================
 CREATE TABLE company_contacts (
   contact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(company_id) ON DELETE CASCADE,
   
+  contact_type VARCHAR(50) NOT NULL,
   contact_first_name VARCHAR(100) NOT NULL,
   contact_last_name VARCHAR(100) NOT NULL,
   contact_job_title VARCHAR(150),
@@ -84,9 +90,17 @@ CREATE TABLE company_notes (
   note_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(company_id) ON DELETE CASCADE,
   
-  note_content TEXT NOT NULL,
+  note_type VARCHAR(100),
+  note_type_id INTEGER,
+  note_text TEXT NOT NULL,
+  note_content TEXT,
+  follow_up_date DATE,
+  follow_up_type VARCHAR(50),
+  follow_up_completed BOOLEAN DEFAULT FALSE,
+  follow_up_notes TEXT,
   
   created_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by_user_id UUID REFERENCES auth.users(id),
   created_by_name VARCHAR(255)
 );
@@ -114,6 +128,7 @@ CREATE TABLE company_files (
 -- =====================================================
 CREATE INDEX idx_companies_status ON companies(company_status);
 CREATE INDEX idx_companies_created_date ON companies(created_date);
+CREATE INDEX idx_addresses_company_id ON company_addresses(company_id);
 CREATE INDEX idx_contacts_company_id ON company_contacts(company_id);
 CREATE INDEX idx_contacts_email ON company_contacts(contact_email);
 CREATE INDEX idx_notes_company_id ON company_notes(company_id);
@@ -123,6 +138,7 @@ CREATE INDEX idx_files_company_id ON company_files(company_id);
 -- ROW LEVEL SECURITY (RLS)
 -- =====================================================
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_addresses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE company_contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE company_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE company_files ENABLE ROW LEVEL SECURITY;
@@ -131,6 +147,7 @@ ALTER TABLE company_files ENABLE ROW LEVEL SECURITY;
 -- RLS POLICIES
 -- =====================================================
 CREATE POLICY "Enable all operations for companies" ON companies FOR ALL USING (true);
+CREATE POLICY "Enable all operations for company_addresses" ON company_addresses FOR ALL USING (true);
 CREATE POLICY "Enable all operations for company_contacts" ON company_contacts FOR ALL USING (true);
 CREATE POLICY "Enable all operations for company_notes" ON company_notes FOR ALL USING (true);
 CREATE POLICY "Enable all operations for company_files" ON company_files FOR ALL USING (true);

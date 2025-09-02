@@ -10,31 +10,14 @@ export interface Company {
   company_size?: string;
   annual_revenue?: string;
   company_website?: string;
-  
-  // Address
-  street_address?: string;
-  apt_suite?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  address_type?: string;
-  
-  // Contact Info (primary contact) 
-  contact_first_name?: string;
-  contact_last_name?: string;
-  contact_job_title?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  contact_mobile?: string;
-  preferred_contact_method?: string;
-  contact_type?: string;
+  tin?: string;
   
   // Status fields
-  company_status: 'lead' | 'prospect' | 'client' | 'inactive';
+  company_status: string;
   status_id?: number;
   lead_source?: string;
   source_id?: number;
-  lead_score?: 'hot' | 'warm' | 'cold';
+  lead_score?: string;
   score_id?: number;
   size_id?: number;
   revenue_id?: number;
@@ -58,17 +41,33 @@ export interface Company {
   created_by_user_id?: string;
 }
 
+export interface CompanyAddress {
+  address_id: string;
+  company_id: string;
+  address_type_id: number;
+  street_address?: string;
+  apt_suite?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  created_date: string;
+  updated_date: string;
+}
+
 export interface CompanyContact {
   contact_id: string;
   company_id: string;
+  contact_type: string;
   contact_first_name: string;
   contact_last_name: string;
   contact_job_title?: string;
-  contact_email: string;
+  contact_email?: string;
   contact_phone?: string;
   contact_mobile?: string;
   preferred_contact_method?: 'email' | 'phone' | 'mobile';
-  is_primary_contact: boolean;
+  is_primary_contact?: boolean;
+  is_decision_maker?: boolean;
+  is_active?: boolean;
   created_date: string;
   updated_date: string;
 }
@@ -79,6 +78,10 @@ export interface CompanyNote {
   note_type?: string;
   note_type_id?: number;
   note_text: string;
+  follow_up_date?: string | null;
+  follow_up_type?: string;
+  follow_up_completed?: boolean;
+  follow_up_notes?: string;
   created_date: string;
   created_by_user_id?: string;
 }
@@ -109,10 +112,10 @@ export interface DimensionValue {
 async function withErrorHandling<T>(
   operation: () => Promise<T>,
   errorMessage: string = 'Operation failed'
-): Promise<{ data?: T; error?: string }> {
+): Promise<T> {
   try {
     const data = await operation();
-    return { data };
+    return data;
   } catch (error: any) {
     // Enhanced error logging for debugging
     console.error(`${errorMessage}:`, {
@@ -124,7 +127,7 @@ async function withErrorHandling<T>(
       stack: error.stack
     });
     
-    // Return more descriptive error messages
+    // Create more descriptive error messages
     let errorMsg = errorMessage;
     if (error && typeof error === 'object') {
       if (error.message) {
@@ -140,7 +143,8 @@ async function withErrorHandling<T>(
       errorMsg += `: ${String(error)}`;
     }
     
-    return { error: errorMsg };
+    // Throw the enhanced error
+    throw new Error(errorMsg);
   }
 }
 
@@ -274,6 +278,25 @@ class CRMDatabase {
 
   async getNoteTypes() {
     return this.getDimensions('dim_note_type');
+  }
+
+  // Check table structure for debugging
+  async checkTableStructure(): Promise<any> {
+    return withErrorHandling(async () => {
+      // Try a simple query to see what fields exist
+      const { data: sampleData, error: sampleError } = await supabase
+        .from('company_notes')
+        .select('*')
+        .limit(1);
+      
+      if (sampleError) throw sampleError;
+      
+      // Return field names from sample data
+      return {
+        fields: Object.keys(sampleData?.[0] || {}),
+        sample: sampleData?.[0] || null
+      };
+    }, 'Failed to check table structure');
   }
 
   async getContactMethods() {
@@ -447,6 +470,60 @@ class CRMDatabase {
     }, 'Failed to update company status');
   }
 
+  // ==================== ADDRESSES ====================
+  
+  async getCompanyAddresses(companyId: string) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_addresses')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_date', { ascending: false });
+
+      if (error) throw error;
+      return data as CompanyAddress[];
+    }, 'Failed to fetch addresses');
+  }
+
+  async createAddress(address: Partial<CompanyAddress>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_addresses')
+        .insert([address])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CompanyAddress;
+    }, 'Failed to create address');
+  }
+
+  async updateAddress(addressId: string, address: Partial<CompanyAddress>) {
+    return withErrorHandling(async () => {
+      const { data, error } = await supabase
+        .from('company_addresses')
+        .update(address)
+        .eq('address_id', addressId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as CompanyAddress;
+      }, 'Failed to update address');
+  }
+
+  async deleteAddress(addressId: string) {
+    return withErrorHandling(async () => {
+      const { error } = await supabase
+        .from('company_addresses')
+        .delete()
+        .eq('address_id', addressId);
+
+      if (error) throw error;
+      return true;
+    }, 'Failed to delete address');
+  }
+
   // ==================== CONTACTS ====================
   
   async getCompanyContacts(companyId: string) {
@@ -516,53 +593,54 @@ class CRMDatabase {
     }, 'Failed to fetch notes');
   }
 
-  async createNote(note: Partial<CompanyNote>) {
+  async createNote(note: Partial<CompanyNote> | { company_id: string; type: string; text: string; follow_up_date?: string }) {
     return withErrorHandling(async () => {
-      // If note_type is provided but not note_type_id, look it up
-      if (note.note_type && !note.note_type_id) {
+      let processedNote: Partial<CompanyNote>;
+      
+      // Handle both formats: direct note object or simplified format
+      if ('type' in note && 'text' in note) {
+        // Simplified format from NotesSection
         const noteTypes = await this.getNoteTypes();
-        const noteType = noteTypes.data?.find(t => t.name === note.note_type);
-        if (noteType) {
-          note.note_type_id = noteType.id;
+        const noteType = noteTypes.find(t => t.name === note.type);
+        
+        if (!noteType) {
+          throw new Error('Invalid note type');
+        }
+
+        processedNote = {
+          company_id: note.company_id,
+          note_type: note.type,
+          note_type_id: noteType.id,
+          note_text: note.text,
+          follow_up_date: note.follow_up_date || null,
+          follow_up_type: note.follow_up_type || null,
+          created_date: new Date().toISOString()
+        };
+      } else {
+        // Direct note object format
+        processedNote = { ...note };
+        
+        // If note_type is provided but not note_type_id, look it up
+        if (processedNote.note_type && !processedNote.note_type_id) {
+          const noteTypes = await this.getNoteTypes();
+          const noteType = noteTypes.find(t => t.name === processedNote.note_type);
+          if (noteType) {
+            processedNote.note_type_id = noteType.id;
+          }
         }
       }
 
       const { data, error } = await supabase
         .from('company_notes')
-        .insert([note])
+        .insert([processedNote])
         .select()
         .single();
 
-      if (error) throw error;
-      return data as CompanyNote;
-    }, 'Failed to create note');
-  }
-
-  async addNote(companyId: string, noteData: { type: string; text: string }) {
-    return withErrorHandling(async () => {
-      // Look up the note type ID
-      const noteTypes = await this.getNoteTypes();
-      const noteType = noteTypes.data?.find(t => t.name === noteData.type);
-      
-      if (!noteType) {
-        throw new Error('Invalid note type');
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
       }
-
-      const note = {
-        company_id: companyId,
-        note_type: noteData.type,
-        note_type_id: noteType.id,
-        note_text: noteData.text,
-        created_date: new Date().toISOString()
-      };
-
-      const { data, error } = await supabase
-        .from('company_notes')
-        .insert([note])
-        .select()
-        .single();
-
-      if (error) throw error;
+      
       return data as CompanyNote;
     }, 'Failed to create note');
   }

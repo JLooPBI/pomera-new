@@ -18,16 +18,20 @@ const Header = () => {
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <a href="/" className="text-xl font-bold text-primary">
-              Pomera Care
+          <div className="flex items-center pl-24">
+            <a href="/" className="flex items-center">
+              <img 
+                src="/pomera_logo_cropped.png" 
+                alt="Pomera Care Logo" 
+                className="h-12 w-auto"
+              />
             </a>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8 ml-auto">
             {navItems.map((item) => (
               <a
                 key={item.href}

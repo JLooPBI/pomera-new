@@ -30,3 +30,52 @@ Whenever database schema changes are made (new tables, modified fields, new rela
 - Adding entries to the version history table
 - Ensuring all foreign key relationships are documented
 - Updating sample values for dimension tables if changed
+
+## 9. Tooltip Usage Rule
+Always use the existing `CustomTooltip` component from `@/components/ui/custom-tooltip` for any field that needs additional information or help text. Do not create new tooltip implementations.
+
+**Usage:**
+```tsx
+import CustomTooltip from '@/components/ui/custom-tooltip';
+<CustomTooltip content="Your help text here" />
+```
+
+## 10. Dimension Table Flexibility Rule
+Never hard-code logic that should be driven by values/fields in dimension tables. The values in these tables can and will change over time (and for different companies/clients may be completely different for fields like "lead status" so all design work should be done to create a system that is future-proof and highly flexible/customizable. Always avoid hard-coded coding when flexible logic can be used.
+
+**Examples of what to avoid:**
+- Hard-coding status values like `'lead'`, `'prospect'`, `'client'` in switch statements
+- Hard-coding color mappings for lead scores instead of using dimension table color fields
+- Hard-coding dropdown options instead of fetching from dimension tables
+- Hard-coding business logic that should be configurable per client
+
+**Examples of proper implementation:**
+- Use `dimensions.scores.map()` to generate dropdown options
+- Use `dimensions.scores.find()` to get color values from dimension tables
+- Use `dimensions.statuses` to generate status tabs dynamically
+- Query dimension tables for all configurable values
+
+## 11. Database Access Rule
+When needing to query or manipulate the Supabase database directly, ALWAYS use Next.js API routes instead of standalone Node.js scripts. The environment variables and Supabase client are properly configured within the Next.js application context.
+
+**Correct approach:**
+- Create API routes in `app/api/` directory
+- Use existing `{ supabase } from '@/lib/supabase'` client
+- Call the API via HTTP requests (curl, PowerShell Invoke-WebRequest, or fetch)
+- Delete temporary API routes after use
+
+**Never do:**
+- Create standalone Node.js scripts that try to access environment variables
+- Attempt to manually configure Supabase clients in scripts
+- Use workarounds like dotenv.config() in standalone scripts
+- Fight against the Next.js architecture
+
+**Example:**
+```typescript
+// app/api/temp-operation/route.ts
+import { supabase } from '@/lib/supabase';
+export async function POST() {
+  const { data, error } = await supabase.from('table').select('*');
+  return Response.json({ data, error });
+}
+```

@@ -24,25 +24,57 @@ export default function CompanyList({
   dimensions 
 }: CompanyListProps) {
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'lead': return 'bg-blue-100 text-blue-800';
-      case 'prospect': return 'bg-yellow-100 text-yellow-800';
-      case 'client': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+    const statusObj = dimensions.statuses.find(s => 
+      s.name.toLowerCase() === status?.toLowerCase() ||
+      s.name.toLowerCase().includes(status?.toLowerCase() || '') ||
+      status?.toLowerCase().includes(s.name.toLowerCase())
+    );
+    if (statusObj?.color) {
+      // Map color names to Tailwind classes - completely dynamic
+      const colorMap: { [key: string]: string } = {
+        'red': 'bg-red-100 text-red-800',
+        'orange': 'bg-orange-100 text-orange-800',
+        'blue': 'bg-blue-100 text-blue-800',
+        'green': 'bg-green-100 text-green-800',
+        'yellow': 'bg-yellow-100 text-yellow-800',
+        'purple': 'bg-purple-100 text-purple-800',
+        'pink': 'bg-pink-100 text-pink-800',
+        'grey': 'bg-gray-100 text-gray-800',
+        'gray': 'bg-gray-100 text-gray-800',
+        'black': 'bg-black text-white',
+        'white': 'bg-white text-black'
+      };
+      return colorMap[statusObj.color.toLowerCase()] || 'bg-gray-100 text-gray-800';
     }
+    // If no color in dimension table, use default
+    return 'bg-gray-100 text-gray-800';
   };
 
   const getScoreColor = (score: string) => {
-    const scoreObj = dimensions.scores.find(s => s.name.toLowerCase() === score?.toLowerCase());
+    const scoreObj = dimensions.scores.find(s => 
+      s.name.toLowerCase() === score?.toLowerCase() ||
+      s.name.toLowerCase().includes(score?.toLowerCase() || '') ||
+      score?.toLowerCase().includes(s.name.toLowerCase())
+    );
     if (scoreObj?.color) {
-      return `text-${scoreObj.color}-600`;
+      // Map color names to Tailwind classes - completely dynamic
+      const colorMap: { [key: string]: string } = {
+        'red': 'text-red-600',
+        'orange': 'text-orange-600',
+        'blue': 'text-blue-600',
+        'green': 'text-green-600',
+        'yellow': 'text-yellow-600',
+        'purple': 'text-purple-600',
+        'pink': 'text-pink-600',
+        'grey': 'text-gray-600',
+        'gray': 'text-gray-600',
+        'black': 'text-black',
+        'white': 'text-white'
+      };
+      return colorMap[scoreObj.color.toLowerCase()] || 'text-gray-600';
     }
-    switch (score?.toLowerCase()) {
-      case 'hot': return 'text-red-600';
-      case 'warm': return 'text-orange-600';
-      case 'cold': return 'text-blue-600';
-      default: return 'text-gray-600';
-    }
+    // If no color in dimension table, use default
+    return 'text-gray-600';
   };
 
   const formatCurrency = (amount: number): string => {
@@ -79,7 +111,11 @@ export default function CompanyList({
                 </span>
                 {company.lead_score && (
                   <span className={`text-sm font-medium ${getScoreColor(company.lead_score)}`}>
-                    {company.lead_score.toUpperCase()}
+                    {dimensions.scores.find(s => 
+                      s.name.toLowerCase() === company.lead_score?.toLowerCase() ||
+                      s.name.toLowerCase().includes(company.lead_score?.toLowerCase() || '') ||
+                      company.lead_score?.toLowerCase().includes(s.name.toLowerCase())
+                    )?.name || company.lead_score}
                   </span>
                 )}
               </div>

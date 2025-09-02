@@ -38,7 +38,7 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 - **Reporting**: Pipeline analysis, opportunity value tracking
 - **Search**: Company lookup across all fields
 
-**Related Tables**: `company_contacts`, `company_notes`, `company_files`
+**Related Tables**: `company_addresses`, `company_contacts`, `company_notes`, `company_files`
 
 **Field Details**:
 | Field Name | Type | Description | Business Usage |
@@ -49,20 +49,7 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 | `company_size` | VARCHAR(50) | Employee count range | Sales targeting, opportunity sizing |
 | `annual_revenue` | VARCHAR(50) | Revenue range | Sales prioritization, opportunity value |
 | `company_website` | VARCHAR(255) | Company website URL | Research, contact information |
-| `street_address` | VARCHAR(255) | Combined street address | Location tracking, shipping/billing |
-| `apt_suite` | VARCHAR(50) | Apartment/suite number | Detailed address information |
-| `city` | VARCHAR(100) | City name | Geographic filtering, reporting |
-| `state` | VARCHAR(2) | State abbreviation | Geographic filtering, reporting |
-| `zip_code` | VARCHAR(10) | ZIP code (5 or 9 digits) | Geographic filtering, reporting |
-| `address_type` | VARCHAR(50) | Address classification | Address organization, billing vs shipping |
-| `contact_first_name` | VARCHAR(100) | Primary contact first name | Communication, relationship management |
-| `contact_last_name` | VARCHAR(100) | Primary contact last name | Communication, relationship management |
-| `contact_job_title` | VARCHAR(150) | Primary contact job title | Role identification, decision making |
-| `contact_email` | VARCHAR(255) | Primary contact email | Primary communication method |
-| `contact_phone` | VARCHAR(20) | Primary contact phone | Alternative communication method |
-| `contact_mobile` | VARCHAR(20) | Primary contact mobile | Alternative communication method |
-| `preferred_contact_method` | VARCHAR(20) | Preferred communication | Communication strategy |
-| `contact_type` | VARCHAR(50) | Contact role classification | Contact organization, relationship mapping |
+| `tin` | VARCHAR(20) | Tax Identification Number | Tax compliance, legal documentation |
 | `company_status` | VARCHAR(20) | Pipeline status (required) | CRM pipeline management, reporting |
 | `lead_source` | VARCHAR(50) | Lead origin | Marketing effectiveness, source tracking |
 | `lead_score` | VARCHAR(20) | Lead priority/urgency | Sales prioritization, follow-up scheduling |
@@ -80,7 +67,47 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 
 ---
 
-### 2. `company_contacts` - Contact Management
+### 2. `company_addresses` - Address Management
+**Purpose**: Stores multiple addresses per company with type classification and role flags.
+
+**Business Logic**:
+- Companies can have multiple addresses for different purposes
+- Address types include: Billing, Shipping, Office, etc.
+- Primary address is the main company location
+- Billing and shipping addresses are flagged for operational purposes
+
+**Key Fields & Usage**:
+- `company_id`: Links to the parent company
+- `address_type`: Classification of address purpose
+- `is_primary_address`: Boolean flag for main company location
+- `is_billing_address`: Boolean flag for billing operations
+- `is_shipping_address`: Boolean flag for shipping operations
+
+**Application Usage**:
+- **Address Management**: Add/edit multiple addresses per company
+- **Operations**: Identify billing and shipping addresses
+- **Reporting**: Geographic analysis and address organization
+
+**Field Details**:
+| Field Name | Type | Description | Business Usage |
+|------------|------|-------------|----------------|
+| `address_id` | UUID | Primary key, auto-generated | Unique identifier for each address |
+| `company_id` | UUID | Foreign key to companies | Links address to parent company |
+| `address_type` | VARCHAR(50) | Address classification | Address organization and purpose |
+| `street_address` | VARCHAR(255) | Street address | Physical location information |
+| `apt_suite` | VARCHAR(50) | Apartment/suite number | Detailed address information |
+| `city` | VARCHAR(100) | City name | Geographic filtering, reporting |
+| `state` | VARCHAR(2) | State abbreviation | Geographic filtering, reporting |
+| `zip_code` | VARCHAR(10) | ZIP code | Geographic filtering, reporting |
+| `is_primary_address` | BOOLEAN | Main company location | Primary address identification |
+| `is_billing_address` | BOOLEAN | Billing operations flag | Billing address identification |
+| `is_shipping_address` | BOOLEAN | Shipping operations flag | Shipping address identification |
+| `created_date` | TIMESTAMP | Record creation date | Audit trail, reporting |
+| `updated_date` | TIMESTAMP | Last modification date | Audit trail, change tracking |
+
+---
+
+### 3. `company_contacts` - Contact Management
 **Purpose**: Stores multiple contacts per company with role and preference information.
 
 **Business Logic**:
@@ -91,6 +118,7 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 
 **Key Fields & Usage**:
 - `company_id`: Links to the parent company
+- `contact_type`: Classification of contact role/purpose
 - `is_primary_contact`: Boolean flag determining main contact
 - `is_decision_maker`: Boolean flag for sales prioritization
 - `preferred_contact_method`: Used for communication preferences
@@ -102,28 +130,83 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 
 **Related Tables**: `companies`
 
+**Field Details**:
+| Field Name | Type | Description | Business Usage |
+|------------|------|-------------|----------------|
+| `contact_id` | UUID | Primary key, auto-generated | Unique identifier for each contact |
+| `company_id` | UUID | Foreign key to companies | Links contact to parent company |
+| `contact_type` | VARCHAR(50) | Contact role classification | Contact organization and purpose |
+| `contact_first_name` | VARCHAR(100) | Contact first name | Contact identification |
+| `contact_last_name` | VARCHAR(100) | Contact last name | Contact identification |
+| `contact_job_title` | VARCHAR(150) | Contact job title | Role identification, decision making |
+| `contact_email` | VARCHAR(255) | Contact email | Primary communication method |
+| `contact_phone` | VARCHAR(20) | Contact work phone | Alternative communication method |
+| `contact_mobile` | VARCHAR(20) | Contact mobile phone | Alternative communication method |
+| `preferred_contact_method` | VARCHAR(20) | Preferred communication | Communication strategy |
+| `is_primary_contact` | BOOLEAN | Main contact flag | Primary contact identification |
+| `is_decision_maker` | BOOLEAN | Decision maker flag | Sales prioritization |
+| `is_active_contact` | BOOLEAN | Active contact status | Contact management |
+| `created_date` | TIMESTAMP | Record creation date | Audit trail, reporting |
+| `updated_date` | TIMESTAMP | Last modification date | Audit trail, change tracking |
+
 ---
 
-### 3. `company_notes` - Activity Tracking
-**Purpose**: Tracks all interactions, notes, and activities with companies.
+### 3. `company_notes` - Activity Tracking & Workflow Management
+**Purpose**: Tracks all interactions, notes, and activities with companies, including follow-up scheduling for workflow management.
 
 **Business Logic**:
 - Maintains audit trail of all company interactions
 - Notes are categorized by type for better organization
 - Timestamps track when activities occurred
 - Links to users who created the notes
+- Follow-up dates enable workflow management and action item tracking
+- Follow-up completion tracking for accountability and reporting
 
 **Key Fields & Usage**:
-- `note_content`: Free-text field for activity descriptions
-- `created_by_user_id`: Links to user who created the note
+- `note_id`: Unique identifier for each note
+- `company_id`: Links to the parent company
+- `note_type`: Categorization of note (e.g., Call, Meeting, Follow-up)
+- `note_type_id`: Reference to dim_note_type table for standardized types
+- `note_text`: Free-text field for activity descriptions (migrated from note_content)
+- `follow_up_date`: Date when follow-up action is required (workflow management)
+- `follow_up_completed`: Boolean flag indicating if follow-up is completed
+- `follow_up_notes`: Additional details about follow-up actions or completion
 - `created_date`: Timestamp for activity tracking
+- `updated_date`: Last modification timestamp
+- `created_by_user_id`: Links to user who created the note
+- `created_by_name`: Name of user who created the note
 
 **Application Usage**:
 - **Activity Log**: View all company interactions chronologically
 - **Sales Process**: Track follow-ups, meetings, and communications
 - **Reporting**: Analyze activity patterns and frequency
+- **Workflow Management**: Track pending follow-ups and action items
+- **Action Queues**: Generate work lists based on follow-up dates
+- **Performance Tracking**: Monitor follow-up completion rates
 
 **Related Tables**: `companies`
+
+**Field Details**:
+| Field Name | Type | Description | Business Usage |
+|------------|------|-------------|----------------|
+| `note_id` | UUID | Primary key, auto-generated | Unique identifier for each note |
+| `company_id` | UUID | Foreign key to companies | Links note to specific company |
+| `note_type` | VARCHAR(100) | Note categorization | Organizes notes by type for filtering |
+| `note_type_id` | INTEGER | Reference to dim_note_type | Standardized note type classification |
+| `note_text` | TEXT | Note content | Free-text activity description |
+| `follow_up_date` | DATE | Follow-up action date | Workflow management, action scheduling |
+| `follow_up_type` | VARCHAR(50) | Follow-up method (email, phone, etc.) | Communication method tracking for follow-ups |
+| `follow_up_completed` | BOOLEAN | Follow-up completion status | Accountability tracking, reporting |
+| `follow_up_notes` | TEXT | Follow-up action details | Additional context for follow-up actions |
+| `created_date` | TIMESTAMP | Note creation timestamp | Audit trail, chronological ordering |
+| `updated_date` | TIMESTAMP | Last modification timestamp | Change tracking, audit trail |
+| `created_by_user_id` | UUID | User who created note | Accountability, user tracking |
+| `created_by_name` | VARCHAR(255) | Name of note creator | Display purposes, audit trail |
+
+**Workflow Integration**:
+- **Future Use**: This structure enables easy implementation of work queues, action item dashboards, and automated follow-up reminders
+- **Efficient Queries**: Indexed follow-up dates allow fast retrieval of pending actions
+- **Scalability**: Can easily extend to include priority levels, assignment tracking, and workflow automation
 
 ---
 
@@ -452,7 +535,14 @@ companies (1) ←→ (many) company_files
 |------|---------|---------|
 | Initial | 1.0 | Initial data dictionary creation |
 | 2024-01-XX | 1.1 | Added address_type and contact_type fields to companies table, combined street_number and street_name into street_address |
-| Current | 1.1 | Complete documentation of all tables and relationships with enhanced address and contact management |
+| 2024-01-XX | 1.2 | Added follow-up date functionality to company_notes table for workflow management and action item tracking |
+| 2024-01-XX | 1.3 | Enhanced company_notes table with note_type, note_type_id, note_text, follow_up_date, follow_up_completed, follow_up_notes, and updated_date fields for comprehensive note management |
+| 2024-01-XX | 1.4 | Fixed note_content NOT NULL constraint issue and ensured proper table structure for company_notes |
+| 2024-01-XX | 1.5 | Final cleanup - removed temporary migration files, system fully operational |
+| 2024-01-XX | 1.6 | Removed obsolete migrations directory - all schema changes already applied and documented |
+| 2024-01-XX | 1.7 | Added follow_up_type field to company_notes table for tracking follow-up communication methods |
+| 2024-01-XX | 1.8 | Major restructure: Moved address and contact fields from companies table to separate company_addresses and company_contacts tables for multi-value support |
+| Current | 1.8 | Complete documentation with enhanced note management system, multi-address/contact support, and workflow management capabilities |
 
 ---
 
