@@ -230,6 +230,10 @@ class CRMDatabase {
             id = item.industry_id;
             name = item.industry_name;
             break;
+          case 'dim_document_type':
+            id = item.doc_type_id;
+            name = item.doc_type_name;
+            break;
           default:
             id = item.id || 0;
             name = item.name || 'Unknown';
@@ -317,6 +321,10 @@ class CRMDatabase {
 
   async getIndustries() {
     return this.getDimensions('dim_industry');
+  }
+
+  async getDocumentTypes() {
+    return this.getDimensions('dim_document_type');
   }
 
 

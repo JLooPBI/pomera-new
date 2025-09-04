@@ -14,6 +14,8 @@ interface NotesSectionProps {
   contactMethods: DimensionValue[];
   onNotesChange: (notes: any[]) => void;
   saving: boolean;
+  readOnly?: boolean;
+  onNoteSaved?: () => void;
 }
 
 export default function NotesSection({ 
@@ -22,7 +24,9 @@ export default function NotesSection({
   noteTypes, 
   contactMethods,
   onNotesChange,
-  saving 
+  saving,
+  readOnly = false,
+  onNoteSaved
 }: NotesSectionProps) {
   const [newNote, setNewNote] = useState({ 
     type: '', 
@@ -55,6 +59,9 @@ export default function NotesSection({
       onNotesChange([...notes, newNoteData]);
       setNewNote({ type: '', text: '', followUpDate: '', followUpType: '' });
       toast.success('Note added');
+      if (onNoteSaved) {
+        onNoteSaved();
+      }
     } catch (error) {
       console.error('Note creation error:', error);
       if (error instanceof Error) {
@@ -82,67 +89,70 @@ export default function NotesSection({
   return (
     <div className="mb-6">
       <h3 className="text-lg font-semibold mb-4">Notes & Activities</h3>
-      <div className="mb-4 space-y-3">
-        <div>
-          <label className="block text-xs text-gray-600 mb-1">Note/Activity Type</label>
-          <select
-            value={newNote.type}
-            onChange={(e) => setNewNote({ ...newNote, type: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select note type</option>
-            {noteTypes.map(type => (
-              <option key={type.id} value={type.name}>{type.name}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-xs text-gray-600 mb-1">Comments</label>
-          <textarea
-            placeholder="Add a note..."
-            value={newNote.text}
-            onChange={(e) => setNewNote({ ...newNote, text: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[80px] resize-y"
-            rows={3}
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
+      
+      {!readOnly && (
+        <div className="mb-4 space-y-3">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Follow-Up Date</label>
-            <Input
-              type="date"
-              value={newNote.followUpDate}
-              onChange={(e) => setNewNote({ ...newNote, followUpDate: e.target.value })}
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">Follow-Up Method</label>
+            <label className="block text-xs text-gray-600 mb-1">Note/Activity Type</label>
             <select
-              value={newNote.followUpType}
-              onChange={(e) => setNewNote({ ...newNote, followUpType: e.target.value })}
+              value={newNote.type}
+              onChange={(e) => setNewNote({ ...newNote, type: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
-              <option value="">Select method</option>
-              {contactMethods.map(method => (
-                <option key={method.id} value={method.name}>{method.name}</option>
+              <option value="">Select note type</option>
+              {noteTypes.map(type => (
+                <option key={type.id} value={type.name}>{type.name}</option>
               ))}
             </select>
           </div>
+          
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Comments</label>
+            <textarea
+              placeholder="Add a note..."
+              value={newNote.text}
+              onChange={(e) => setNewNote({ ...newNote, text: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[80px] resize-y"
+              rows={3}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Follow-Up Date</label>
+              <Input
+                type="date"
+                value={newNote.followUpDate}
+                onChange={(e) => setNewNote({ ...newNote, followUpDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Follow-Up Method</label>
+              <select
+                value={newNote.followUpType}
+                onChange={(e) => setNewNote({ ...newNote, followUpType: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select method</option>
+                {contactMethods.map(method => (
+                  <option key={method.id} value={method.name}>{method.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleAddNote} 
+            size="sm"
+            disabled={saving}
+            className="w-full"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
         </div>
-        
-        <Button 
-          onClick={handleAddNote} 
-          size="sm"
-          disabled={saving}
-          className="w-full"
-        >
-          {saving ? 'Adding...' : 'Add Note'}
-        </Button>
-      </div>
+      )}
       
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {notes.length === 0 ? (
@@ -166,13 +176,15 @@ export default function NotesSection({
                     {new Date(note.created_date || note.date).toLocaleString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleDeleteNote(note, index)}
-                  className="text-red-500 hover:text-red-700"
-                  disabled={saving}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => handleDeleteNote(note, index)}
+                    className="text-red-500 hover:text-red-700"
+                    disabled={saving}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))

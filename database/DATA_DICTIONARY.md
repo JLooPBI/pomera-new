@@ -440,6 +440,36 @@ This document provides comprehensive documentation of the Pomera Care recruitmen
 
 ---
 
+### 15. `dim_document_type` - Document Classification
+**Purpose**: Categorizes different types of documents uploaded to companies.
+
+**Business Logic**:
+- Different document types have different compliance and retention requirements
+- Some documents require signatures (legal/contractual)
+- Retention periods vary by document type for compliance
+- Used for document organization and audit trails
+
+**Sample Values**: W-9, Contract, Job Description, NDA
+
+**Field Details**:
+| Field Name | Type | Description | Business Usage |
+|------------|------|-------------|----------------|
+| `doc_type_id` | SERIAL | Primary key | Auto-incrementing unique identifier |
+| `doc_type_name` | VARCHAR(100) | Document type name | Display name, unique constraint |
+| `display_order` | INTEGER | Sort order | Controls dropdown ordering |
+| `is_active` | BOOLEAN | Active status | Enable/disable document types |
+| `requires_signature` | BOOLEAN | Signature requirement | Legal compliance tracking |
+| `retention_days` | INTEGER | Retention period | Compliance and cleanup |
+| `created_date` | TIMESTAMP | Creation timestamp | Audit trail |
+
+**Application Usage**:
+- **File Upload**: Dropdown for document type selection
+- **Compliance**: Track signature requirements and retention
+- **Document Organization**: Categorize uploaded files
+- **Audit Trail**: Track document lifecycle and requirements
+
+---
+
 ## Database Relationships
 
 ### Primary Relationships
@@ -542,7 +572,8 @@ companies (1) ←→ (many) company_files
 | 2024-01-XX | 1.6 | Removed obsolete migrations directory - all schema changes already applied and documented |
 | 2024-01-XX | 1.7 | Added follow_up_type field to company_notes table for tracking follow-up communication methods |
 | 2024-01-XX | 1.8 | Major restructure: Moved address and contact fields from companies table to separate company_addresses and company_contacts tables for multi-value support |
-| Current | 1.8 | Complete documentation with enhanced note management system, multi-address/contact support, and workflow management capabilities |
+| 2024-01-XX | 1.9 | Added dim_document_type table for document classification with compliance tracking (signature requirements, retention periods) |
+| Current | 1.9 | Complete documentation with enhanced note management system, multi-address/contact support, workflow management capabilities, and document type classification |
 
 ---
 

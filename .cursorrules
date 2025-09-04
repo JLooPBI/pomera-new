@@ -81,10 +81,10 @@ export async function POST() {
 ```
 
 ## 12. GitHub Backup Rule
-When backing up changes to GitHub, ALWAYS use `git push origin HEAD:master` because the local branch is "main" but the remote branch is "master". The correct process is:
+When backing up changes to GitHub, ALWAYS use `git push origin main` because both local and remote branches are "main". The correct process is:
 1. `git add .` to stage all changes
 2. `git commit -m "descriptive message"` to commit changes
-3. `git push origin HEAD:master` to push to GitHub
+3. `git push origin main` to push to GitHub
 
-**Never use:** `git push` (will fail with branch name mismatch)
+**Never use:** `git push origin HEAD:master` (incorrect branch name)
 **Environment files:** .env.local is correctly ignored for security

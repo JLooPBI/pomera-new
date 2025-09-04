@@ -29,6 +29,7 @@ export default function CRMPage() {
     addressTypes: DimensionValue[];
     fileCategories: DimensionValue[];
     industries: DimensionValue[];
+    documentTypes: DimensionValue[];
   }>({
     statuses: [],
     sources: [],
@@ -41,7 +42,8 @@ export default function CRMPage() {
     contactTypes: [],
     addressTypes: [],
     fileCategories: [],
-    industries: []
+    industries: [],
+    documentTypes: []
   });
 
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,8 @@ export default function CRMPage() {
       
       // Load dimensions using the working approach
       try {
-        const [statuses, sources, scores, sizes, revenues, positionTypes, noteTypes, contactMethods, contactTypes, addressTypes, fileCategories, industries] = await Promise.all([
+        console.log('Starting to load dimensions...');
+        const [statuses, sources, scores, sizes, revenues, positionTypes, noteTypes, contactMethods, contactTypes, addressTypes, fileCategories, industries, documentTypes] = await Promise.all([
           crmDatabase.getDimensions('dim_company_status'),
           crmDatabase.getDimensions('dim_lead_source'),
           crmDatabase.getDimensions('dim_lead_score'),
@@ -95,9 +98,12 @@ export default function CRMPage() {
           crmDatabase.getDimensions('dim_contact_type'),
           crmDatabase.getDimensions('dim_address_type'),
           crmDatabase.getDimensions('dim_file_category'),
-          crmDatabase.getDimensions('dim_industry')
+          crmDatabase.getDimensions('dim_industry'),
+          crmDatabase.getDocumentTypes()
         ]);
+        console.log('All dimensions loaded successfully');
         
+        console.log('Document types loaded:', documentTypes);
         setDimensions({
           statuses: statuses || [],
           sources: sources || [],
@@ -110,7 +116,8 @@ export default function CRMPage() {
           contactTypes: contactTypes || [],
           addressTypes: addressTypes || [],
           fileCategories: fileCategories || [],
-          industries: industries || []
+          industries: industries || [],
+          documentTypes: documentTypes || []
         });
         
         // Set default active tab to first status if not already set
@@ -119,6 +126,7 @@ export default function CRMPage() {
         }
       } catch (dimensionError) {
         console.error('Error loading dimensions:', dimensionError);
+        console.error('Error details:', dimensionError);
         toast.error('Failed to load some dimension data');
         // Don't fail the whole load if dimensions fail
       }
@@ -369,10 +377,7 @@ export default function CRMPage() {
         {selectedLead && (
           <CompanyModal
             company={selectedLead}
-            isEditMode={isEditMode}
             onClose={closeModal}
-            onEditModeChange={setIsEditMode}
-            onCompanyUpdate={handleCompanyUpdate}
             dimensions={dimensions}
             notes={notes}
             contacts={contacts}
