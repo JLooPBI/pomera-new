@@ -528,14 +528,33 @@ class CRMDatabase {
   
   async getCompanyContacts(companyId: string) {
     return withErrorHandling(async () => {
+      // First get the contact types from dimension table to determine ordering
+      const { data: contactTypes, error: typeError } = await supabase
+        .from('dim_contact_type')
+        .select('contact_type_name, display_order')
+        .eq('is_active', true)
+        .order('display_order');
+
+      if (typeError) throw typeError;
+
+      // Get contacts and sort them based on dimension table order
       const { data, error } = await supabase
         .from('company_contacts')
         .select('*')
-        .eq('company_id', companyId)
-        .order('is_primary_contact', { ascending: false });
+        .eq('company_id', companyId);
 
       if (error) throw error;
-      return data as CompanyContact[];
+
+      // Sort contacts based on contact type display order from dimension table
+      const sortedContacts = (data || []).sort((a, b) => {
+        const typeA = contactTypes?.find(t => t.contact_type_name === a.contact_type);
+        const typeB = contactTypes?.find(t => t.contact_type_name === b.contact_type);
+        const orderA = typeA?.display_order || 999;
+        const orderB = typeB?.display_order || 999;
+        return orderA - orderB;
+      });
+
+      return sortedContacts as CompanyContact[];
     }, 'Failed to fetch contacts');
   }
 
