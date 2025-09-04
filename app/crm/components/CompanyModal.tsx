@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { ChevronDown, ChevronRight, Upload } from 'lucide-react';
+import CustomTooltip from '@/components/ui/custom-tooltip';
 import { type Company, type DimensionValue } from '@/lib/supabase-crm';
 import { toast } from 'react-hot-toast';
 import NotesSection from './NotesSection';
@@ -58,11 +59,12 @@ export default function CompanyModal({
 }: CompanyModalProps) {
   const [editFormData, setEditFormData] = useState<Partial<Company>>(company);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
-    company: true,
-    opportunity: true,
+    companyInfo: true,
+    address: false,
+    primaryContact: false,
+    leadData: false,
+    staffingNeeds: false,
     notes: true,
-    contacts: false,
-    addresses: false,
     uploads: true
   });
 
@@ -82,19 +84,41 @@ export default function CompanyModal({
     }));
   };
 
-  const formatCurrency = (amount: number): string => {
+  const formatWebsiteUrl = (url: string): string => {
+    if (!url) return url;
+    
+    // If it already has a protocol, return as is
+    if (url.match(/^https?:\/\//)) {
+      return url;
+    }
+    
+    // If it starts with www., add https://
+    if (url.match(/^www\./)) {
+      return `https://${url}`;
+    }
+    
+    // If it's just a domain, add https://
+    if (url.match(/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/)) {
+      return `https://${url}`;
+    }
+    
+    // Return as is if it doesn't match any pattern
+    return url;
+  };
+
+  const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   const handleSave = async () => {
     try {
-      // Validate zip code if provided
-      if (editFormData.zip_code && !/^\d{5}(-\d{4})?$/.test(editFormData.zip_code)) {
+      // Validate zip code if provided (check if it exists in the form data)
+      if ((editFormData as any).zip_code && !/^\d{5}(-\d{4})?$/.test((editFormData as any).zip_code)) {
         toast.error('Please enter a proper Zip code in format XXXXX or XXXXX-XXXX');
         return;
       }
@@ -102,11 +126,7 @@ export default function CompanyModal({
       // Format the website URL if provided
       const updateData = {
         ...editFormData,
-        company_website: editFormData.company_website ? 
-          (editFormData.company_website.match(/^https?:\/\//) ? 
-            editFormData.company_website : 
-            `https://${editFormData.company_website}`) : 
-          editFormData.company_website
+        company_website: editFormData.company_website ? formatWebsiteUrl(editFormData.company_website) : editFormData.company_website
       };
       
       // For now, just update local state
@@ -150,27 +170,31 @@ export default function CompanyModal({
         </div>
         
         <div className="p-6">
-          {/* Company Information Section - COLLAPSIBLE */}
-          <div className="mb-6">
+          {/* Company Information Section */}
+          <div className="mb-6 border rounded-lg">
             <button
-              onClick={() => toggleSection('company')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
+              type="button"
+              onClick={() => toggleSection('companyInfo')}
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
             >
-              <h3 className="text-lg font-semibold">Company Information</h3>
-              {expandedSections.company ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Company Information</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.companyInfo ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
             
-            {expandedSections.company && (
-              <div className="pl-2">
+            {expandedSections.companyInfo && (
+              <div className="p-4 space-y-4">
                 {isEditMode ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Edit mode fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
                       <Input
                         name="company_name"
                         value={editFormData.company_name || ''}
                         onChange={handleEditInputChange}
+                        required
                       />
                     </div>
                     <div>
@@ -215,6 +239,15 @@ export default function CompanyModal({
                         ))}
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">TIN (Tax ID)</label>
+                      <Input
+                        name="tin"
+                        value={editFormData.tin || ''}
+                        onChange={handleEditInputChange}
+                        placeholder="XX-XXXXXXX"
+                      />
+                    </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                       <Input
@@ -224,155 +257,117 @@ export default function CompanyModal({
                         type="text"
                         placeholder="www.example.com or https://example.com"
                       />
+                      {editFormData.company_website && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Will be saved as: {formatWebsiteUrl(editFormData.company_website)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Company Name</p>
+                      <p className="font-medium">{company.company_name || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Industry</p>
+                      <p className="font-medium">{company.industry || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Company Size</p>
+                      <p className="font-medium">{company.company_size || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Annual Revenue</p>
+                      <p className="font-medium">{company.annual_revenue || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">TIN (Tax ID)</p>
+                      <p className="font-medium">{company.tin || 'Not specified'}</p>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
-                      <select
-                        name="address_type"
-                        value={editFormData.address_type || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">Select address type</option>
-                        {dimensions.addressTypes.map(type => (
-                          <option key={type.id} value={type.name}>{type.name}</option>
-                        ))}
-                      </select>
+                      <p className="text-sm text-gray-600">Website</p>
+                      <p className="font-medium">{company.company_website || 'Not provided'}</p>
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                      <Input
-                        name="street_address"
-                        value={editFormData.street_address || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="123 Main Street"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Apt/Suite</label>
-                      <Input
-                        name="apt_suite"
-                        value={editFormData.apt_suite || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="Apt/Suite"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <Input
-                        name="city"
-                        value={editFormData.city || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="City"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <select
-                        name="state"
-                        value={editFormData.state || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">State</option>
-                        {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'].map(state => (
-                          <option key={state} value={state}>{state}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                      <Input
-                        name="zip_code"
-                        value={editFormData.zip_code || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="12345 or 12345-6789"
-                        pattern="[0-9]{5}(-[0-9]{4})?"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact First Name</label>
-                      <Input
-                        name="contact_first_name"
-                        value={editFormData.contact_first_name || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="First Name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Last Name</label>
-                      <Input
-                        name="contact_last_name"
-                        value={editFormData.contact_last_name || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="Last Name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                      <Input
-                        name="contact_job_title"
-                        value={editFormData.contact_job_title || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="Job Title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                      <Input
-                        name="contact_email"
-                        value={editFormData.contact_email || ''}
-                        onChange={handleEditInputChange}
-                        type="email"
-                        placeholder="email@company.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                      <Input
-                        name="contact_phone"
-                        value={editFormData.contact_phone || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="(555) 123-4567"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
-                      <Input
-                        name="contact_mobile"
-                        value={editFormData.contact_mobile || ''}
-                        onChange={handleEditInputChange}
-                        placeholder="(555) 123-4567"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
-                      <select
-                        name="contact_type"
-                        value={editFormData.contact_type || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">Select contact type</option>
-                        {dimensions.contactTypes.map(type => (
-                          <option key={type.id} value={type.name}>{type.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Contact Method</label>
-                      <select
-                        name="preferred_contact_method"
-                        value={editFormData.preferred_contact_method || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">Select method</option>
-                        {dimensions.contactMethods.map(method => (
-                          <option key={method.id} value={method.name}>{method.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Addresses Section */}
+          <div className="mb-6 border rounded-lg">
+            <button
+              type="button"
+              onClick={() => toggleSection('address')}
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
+            >
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Addresses/Locations</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.address ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            </button>
+            {expandedSections.address && (
+              <div className="p-4">
+                <AddressesSection
+                  companyId={company.company_id}
+                  addresses={addresses}
+                  addressTypes={dimensions.addressTypes}
+                  onAddressesChange={onAddressesChange}
+                  saving={saving}
+                  isNewCompany={false}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Contacts Section */}
+          <div className="mb-6 border rounded-lg">
+            <button
+              type="button"
+              onClick={() => toggleSection('primaryContact')}
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
+            >
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Contacts</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.primaryContact ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            </button>
+            {expandedSections.primaryContact && (
+              <div className="p-4">
+                <ContactsSection
+                  companyId={company.company_id}
+                  contacts={contacts}
+                  contactTypes={dimensions.contactTypes}
+                  contactMethods={dimensions.contactMethods}
+                  onContactsChange={onContactsChange}
+                  saving={saving}
+                  isNewCompany={false}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Lead Data Section */}
+          <div className="mb-6 border rounded-lg">
+            <button
+              type="button"
+              onClick={() => toggleSection('leadData')}
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
+            >
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Lead Data</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.leadData ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            </button>
+            {expandedSections.leadData && (
+              <div className="p-4 space-y-4">
+                {isEditMode ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
                       <select
@@ -405,141 +400,35 @@ export default function CompanyModal({
                       <label className="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label>
                       <Input
                         name="expected_close_date"
+                        type="date"
                         value={editFormData.expected_close_date || ''}
                         onChange={handleEditInputChange}
-                        type="date"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Value</label>
+                      <div className="flex items-start gap-2 mb-1">
+                        <label className="text-sm font-medium text-gray-700 mt-0.5">
+                          Opportunity Value
+                        </label>
+                        <CustomTooltip content="Enter amount in USD, ex: 5,000" />
+                      </div>
                       <Input
                         name="opportunity_value"
-                        value={editFormData.opportunity_value || ''}
-                        onChange={handleEditInputChange}
-                        type="number"
-                        min="0"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Staffing Needs Overview</label>
-                      <textarea
-                        name="staffing_needs_overview"
-                        value={editFormData.staffing_needs_overview || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Immediate Positions</label>
-                      <Input
-                        name="immediate_positions"
-                        value={editFormData.immediate_positions || ''}
-                        onChange={handleEditInputChange}
-                        type="number"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Annual Positions</label>
-                      <Input
-                        name="annual_positions"
-                        value={editFormData.annual_positions || ''}
-                        onChange={handleEditInputChange}
-                        type="number"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Position Type</label>
-                      <select
-                        name="position_type"
-                        value={editFormData.position_type || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">Select type</option>
-                        {dimensions.positionTypes.map(type => (
-                          <option key={type.id} value={type.name}>{type.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Additional Staffing Details</label>
-                      <textarea
-                        name="additional_staffing_details"
-                        value={editFormData.additional_staffing_details || ''}
-                        onChange={handleEditInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        rows={3}
+                        type="text"
+                        value={editFormData.opportunity_value === 0 ? '' : formatCurrency(editFormData.opportunity_value || 0)}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[$,]/g, '');
+                          const numValue = value === '' ? 0 : parseInt(value, 10);
+                          if (!isNaN(numValue) && numValue >= 0) {
+                            setEditFormData(prev => ({ ...prev, opportunity_value: numValue }));
+                          }
+                        }}
+                        placeholder="Estimated Opportunity Size"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* View mode - display all fields */}
-                    <div>
-                      <p className="text-sm text-gray-600">Company Name</p>
-                      <p className="font-medium">{company.company_name || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Industry</p>
-                      <p className="font-medium">{company.industry || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Company Size</p>
-                      <p className="font-medium">{company.company_size || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Annual Revenue</p>
-                      <p className="font-medium">{company.annual_revenue || 'Not specified'}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Website</p>
-                      <p className="font-medium">{company.company_website || 'Not provided'}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Address</p>
-                      <p className="font-medium">
-                        {company.address_type && <span className="text-gray-500 text-xs">({company.address_type})</span>}<br/>
-                        {company.street_address}<br/>
-                        {company.apt_suite && <span>{company.apt_suite}<br/></span>}
-                        {[company.city, company.state, company.zip_code]
-                          .filter(Boolean).join(', ')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Contact First Name</p>
-                      <p className="font-medium">{company.contact_first_name || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Contact Last Name</p>
-                      <p className="font-medium">{company.contact_last_name || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Job Title</p>
-                      <p className="font-medium">{company.contact_job_title || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium">{company.contact_email || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Phone</p>
-                      <p className="font-medium">{company.contact_phone || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Mobile</p>
-                      <p className="font-medium">{company.contact_mobile || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Contact Type</p>
-                      <p className="font-medium">{company.contact_type || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Preferred Contact Method</p>
-                      <p className="font-medium">{company.preferred_contact_method || 'Not specified'}</p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-600">Lead Source</p>
                       <p className="font-medium">{company.lead_source || 'Not specified'}</p>
@@ -558,10 +447,6 @@ export default function CompanyModal({
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Company Status</p>
-                      <p className="font-medium">{company.company_status || 'Not specified'}</p>
-                    </div>
-                    <div>
                       <p className="text-sm text-gray-600">Expected Close Date</p>
                       <p className="font-medium">{company.expected_close_date || 'Not specified'}</p>
                     </div>
@@ -569,84 +454,135 @@ export default function CompanyModal({
                       <p className="text-sm text-gray-600">Opportunity Value</p>
                       <p className="font-medium">{company.opportunity_value ? formatCurrency(company.opportunity_value) : 'Not specified'}</p>
                     </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Staffing Needs Overview</p>
-                      <p className="font-medium">{company.staffing_needs_overview || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Immediate Positions</p>
-                      <p className="font-medium">{company.immediate_positions || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Annual Positions</p>
-                      <p className="font-medium">{company.annual_positions || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Position Type</p>
-                      <p className="font-medium">{company.position_type || 'Not specified'}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Additional Staffing Details</p>
-                      <p className="font-medium">{company.additional_staffing_details || 'Not provided'}</p>
-                    </div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Opportunity Details Section - COLLAPSIBLE */}
-          <div className="mb-6">
+          {/* Staffing Needs Section */}
+          <div className="mb-6 border rounded-lg">
             <button
-              onClick={() => toggleSection('opportunity')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
+              type="button"
+              onClick={() => toggleSection('staffingNeeds')}
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
             >
-              <h3 className="text-lg font-semibold">Opportunity Details</h3>
-              {expandedSections.opportunity ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Staffing Needs</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.staffingNeeds ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
-            
-            {expandedSections.opportunity && (
-              <div className="pl-2 space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600">Opportunity Value</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    {company.opportunity_value ? formatCurrency(company.opportunity_value) : 'Not set'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Staffing Needs Overview</p>
-                  <p>{company.staffing_needs_overview || 'Not provided'}</p>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Immediate Positions</p>
-                    <p className="font-medium">{company.immediate_positions || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Annual Positions</p>
-                    <p className="font-medium">{company.annual_positions || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Position Type</p>
-                    <p className="font-medium">{company.position_type || 'Not specified'}</p>
-                  </div>
-                </div>
+            {expandedSections.staffingNeeds && (
+              <div className="p-4 space-y-4">
+                {isEditMode ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Staffing Needs Overview</label>
+                      <textarea
+                        name="staffing_needs_overview"
+                        value={editFormData.staffing_needs_overview || ''}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        rows={3}
+                        placeholder="Describe the overall staffing needs..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Immediate Positions</label>
+                        <Input
+                          name="immediate_positions"
+                          type="number"
+                          value={editFormData.immediate_positions || ''}
+                          onChange={handleEditInputChange}
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Annual Positions</label>
+                        <Input
+                          name="annual_positions"
+                          type="number"
+                          value={editFormData.annual_positions || ''}
+                          onChange={handleEditInputChange}
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Position Type</label>
+                        <select
+                          name="position_type"
+                          value={editFormData.position_type || ''}
+                          onChange={handleEditInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Select type</option>
+                          {dimensions.positionTypes.map(type => (
+                            <option key={type.id} value={type.name}>{type.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Additional Staffing Details</label>
+                      <textarea
+                        name="additional_staffing_details"
+                        value={editFormData.additional_staffing_details || ''}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        rows={3}
+                        placeholder="Any additional details about staffing requirements..."
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-600">Staffing Needs Overview</p>
+                      <p className="font-medium">{company.staffing_needs_overview || 'Not provided'}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Immediate Positions</p>
+                        <p className="font-medium">{company.immediate_positions || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Annual Positions</p>
+                        <p className="font-medium">{company.annual_positions || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Position Type</p>
+                        <p className="font-medium">{company.position_type || 'Not specified'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Additional Staffing Details</p>
+                      <p className="font-medium">{company.additional_staffing_details || 'Not provided'}</p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
 
-          {/* Notes Section - COLLAPSIBLE */}
-          <div className="mb-6">
+          {/* Notes Section */}
+          <div className="mb-6 border rounded-lg">
             <button
+              type="button"
               onClick={() => toggleSection('notes')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
             >
-              <h3 className="text-lg font-semibold">Notes & Activities</h3>
-              {expandedSections.notes ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Notes & Activities</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.notes ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
-            
             {expandedSections.notes && (
-              <div className="pl-2">
+              <div className="p-4">
                 <NotesSection
                   companyId={company.company_id}
                   notes={notes}
@@ -659,64 +595,21 @@ export default function CompanyModal({
             )}
           </div>
 
-          {/* Contacts Section - COLLAPSIBLE */}
-          <div className="mb-6">
+          {/* Uploads Section */}
+          <div className="mb-6 border rounded-lg">
             <button
-              onClick={() => toggleSection('contacts')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
-            >
-              <h3 className="text-lg font-semibold">Contacts</h3>
-              {expandedSections.contacts ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </button>
-            
-            {expandedSections.contacts && (
-              <div className="pl-2">
-                <ContactsSection
-                  companyId={company.company_id}
-                  contacts={contacts}
-                  contactTypes={dimensions.contactTypes}
-                  onContactsChange={onContactsChange}
-                  saving={saving}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Addresses Section - COLLAPSIBLE */}
-          <div className="mb-6">
-            <button
-              onClick={() => toggleSection('addresses')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
-            >
-              <h3 className="text-lg font-semibold">Addresses</h3>
-              {expandedSections.addresses ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </button>
-            
-            {expandedSections.addresses && (
-              <div className="pl-2">
-                <AddressesSection
-                  companyId={company.company_id}
-                  addresses={addresses}
-                  addressTypes={dimensions.addressTypes}
-                  onAddressesChange={onAddressesChange}
-                  saving={saving}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Uploads Section - COLLAPSIBLE */}
-          <div className="mb-6">
-            <button
+              type="button"
               onClick={() => toggleSection('uploads')}
-              className="flex items-center justify-between w-full text-left mb-4 p-2 hover:bg-gray-50 rounded"
+              className="w-full px-4 py-3 text-left bg-gray-100 hover:bg-gray-200 flex items-center justify-between rounded-t-lg cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
             >
-              <h3 className="text-lg font-semibold">Documents & Files</h3>
-              {expandedSections.uploads ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900">Documents & Files</h4>
+                <span className="text-xs text-gray-500">(click to expand/collapse)</span>
+              </div>
+              {expandedSections.uploads ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
-            
             {expandedSections.uploads && (
-              <div className="pl-2">
+              <div className="p-4">
                 <div className="mb-4">
                   <Button size="sm" variant="outline" onClick={() => {
                     toast.success('File upload functionality coming soon');

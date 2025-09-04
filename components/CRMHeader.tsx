@@ -1,17 +1,31 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 
 const CRMHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const navItems = [
-    { label: 'Client (CRM)', href: '/crm', isActive: true },
-    { label: 'Candidate (ATS)', href: '/candidate', isActive: false },
-    { label: 'Pomera Admin', href: '/admin', isActive: false },
+    { label: 'Client (CRM)', href: '/crm' },
+    { label: 'ATS', href: '/ats' },
+    { label: 'Pomera Admin', href: '/admin' },
   ];
+
+  // Function to check if a nav item is active
+  const isActive = (href: string) => {
+    if (href === '/crm') {
+      return pathname === '/crm';
+    } else if (href === '/ats') {
+      return pathname === '/ats' || pathname.startsWith('/ats/');
+    } else if (href === '/admin') {
+      return pathname === '/admin' || pathname.startsWith('/admin/');
+    }
+    return false;
+  };
 
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border z-50">
@@ -35,7 +49,7 @@ const CRMHeader = () => {
                 key={item.href}
                 href={item.href}
                 className={`py-2 px-4 rounded-lg font-medium text-sm transition-colors duration-200 ${
-                  item.isActive
+                  isActive(item.href)
                     ? 'bg-primary text-primary-foreground'
                     : 'text-foreground hover:text-primary hover:bg-gray-100'
                 }`}
@@ -69,7 +83,7 @@ const CRMHeader = () => {
                 key={item.href}
                 href={item.href}
                 className={`block py-2 px-4 rounded-lg font-medium text-sm transition-colors duration-200 ${
-                  item.isActive
+                  isActive(item.href)
                     ? 'bg-primary text-primary-foreground'
                     : 'text-foreground hover:text-primary hover:bg-gray-100'
                 }`}
