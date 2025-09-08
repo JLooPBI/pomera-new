@@ -9,10 +9,10 @@ import { toast } from 'react-hot-toast';
 
 interface NotesSectionProps {
   companyId: string;
-  notes: any[];
+  notes: unknown[];
   noteTypes: DimensionValue[];
   contactMethods: DimensionValue[];
-  onNotesChange: (notes: any[]) => void;
+  onNotesChange: (notes: unknown[]) => void;
   saving: boolean;
   readOnly?: boolean;
   onNoteSaved?: () => void;
@@ -72,7 +72,7 @@ export default function NotesSection({
     }
   };
 
-  const handleDeleteNote = async (note: any, index: number) => {
+  const handleDeleteNote = async (note: unknown, index: number) => {
     if (confirm('Are you sure you want to delete this note?')) {
       try {
         if (note.note_id) {

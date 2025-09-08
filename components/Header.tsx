@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
+import Link from 'next/link';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,13 +22,13 @@ const Header = () => {
         <div className="flex items-center h-16">
           {/* Logo */}
           <div className="flex items-center pl-24">
-            <a href="/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <img 
                 src="/pomera_logo_cropped.png" 
                 alt="Pomera Care Logo" 
                 className="h-12 w-auto"
               />
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
