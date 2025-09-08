@@ -1,4 +1,3 @@
-
 import { Mail, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -67,16 +66,16 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold text-primary mb-6 text-center">Testimonials</h2>
             <div className="bg-white/50 rounded-lg p-8 shadow-lg">
               <p className="text-muted-foreground leading-relaxed mb-6 italic">
-                &ldquo;I had the absolute pleasure of working with Aliza Grossman and I truly cannot recommend her enough. During a pivotal time in my career, Aliza played a key role in helping me land an incredible opportunity with a new company. Her support, guidance, and belief in my potential made all the difference as I stepped into a leadership position.
+                "I had the absolute pleasure of working with Aliza Grossman and I truly cannot recommend her enough. During a pivotal time in my career, Aliza played a key role in helping me land an incredible opportunity with a new company. Her support, guidance, and belief in my potential made all the difference as I stepped into a leadership position.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-6 italic">
                 Aliza is someone who brings both professionalism and genuine warmth into every interaction. She is thoughtful, reliable, and consistently goes above and beyond. What sets her apart is her ability to listen with empathy, communicate with clarity, and lead with integrity.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-6 italic">
-                Whether collaborating on a project or simply exchanging ideas, Aliza always adds value and insight. Her work ethic is unmatched, and she approaches every task with passion and purpose. Anyone who has the opportunity to work with Aliza is truly fortunate. She is not just an asset&mdash;she&apos;s a catalyst for growth and success.&rdquo;
+                Whether collaborating on a project or simply exchanging ideas, Aliza always adds value and insight. Her work ethic is unmatched, and she approaches every task with passion and purpose. Anyone who has the opportunity to work with Aliza is truly fortunate. She is not just an asset—she's a catalyst for growth and success."
               </p>
               <div className="text-right">
-                <p className="font-semibold text-primary">Jubert Paul &ldquo;JP&rdquo; Ong</p>
+                <p className="font-semibold text-primary">Jubert Paul "JP" Ong</p>
               </div>
             </div>
           </div>

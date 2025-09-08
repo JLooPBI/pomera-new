@@ -29,12 +29,12 @@ interface CompanyModalProps {
     industries: DimensionValue[];
     documentTypes: DimensionValue[];
   };
-  notes: unknown[];
-  contacts: unknown[];
-  addresses: unknown[];
-  onNotesChange: (notes: unknown[]) => void;
-  onContactsChange: (contacts: unknown[]) => void;
-  onAddressesChange: (addresses: unknown[]) => void;
+  notes: any[];
+  contacts: any[];
+  addresses: any[];
+  onNotesChange: (notes: any[]) => void;
+  onContactsChange: (contacts: any[]) => void;
+  onAddressesChange: (addresses: any[]) => void;
   onStatusChange: (status: Company['company_status']) => void;
   saving: boolean;
 }

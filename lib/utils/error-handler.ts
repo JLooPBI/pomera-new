@@ -7,19 +7,19 @@ export class AppError extends Error {
     message: string,
     public code?: string,
     public statusCode?: number,
-    public details?: unknown
+    public details?: any
   ) {
     super(message);
     this.name = 'AppError';
   }
 }
 
-export interface ErrorResponse<T = unknown> {
+export interface ErrorResponse<T = any> {
   data?: T;
   error?: {
     message: string;
     code?: string;
-    details?: unknown;
+    details?: any;
   };
 }
 
@@ -28,13 +28,13 @@ export async function withErrorHandling<T>(
   options?: {
     errorMessage?: string;
     showToast?: boolean;
-    onError?: (error: unknown) => void;
+    onError?: (error: any) => void;
   }
 ): Promise<ErrorResponse<T>> {
   try {
     const data = await operation();
     return { data };
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Operation failed:', error);
     
     const errorMessage = options?.errorMessage || error.message || 'An unexpected error occurred';
@@ -57,7 +57,7 @@ export async function withErrorHandling<T>(
   }
 }
 
-export function handleSupabaseError(error: unknown): string {
+export function handleSupabaseError(error: any): string {
   if (error.code === '23505') {
     return 'This record already exists';
   }

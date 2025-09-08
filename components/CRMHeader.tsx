@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
-import Link from 'next/link';
 
 const CRMHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,13 +33,13 @@ const CRMHeader = () => {
         <div className="flex items-center h-16">
           {/* Logo */}
           <div className="flex items-center pl-24">
-            <Link href="/" className="flex items-center">
+            <a href="/" className="flex items-center">
               <img 
                 src="/pomera_logo_cropped.png" 
                 alt="Pomera Care Logo" 
                 className="h-12 w-auto"
               />
-            </Link>
+            </a>
           </div>
 
           {/* Desktop Navigation */}

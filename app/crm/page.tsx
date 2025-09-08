@@ -53,9 +53,9 @@ export default function CRMPage() {
   const [selectedLead, setSelectedLead] = useState<Company | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [notes, setNotes] = useState<unknown[]>([]);
-  const [contacts, setContacts] = useState<unknown[]>([]);
-  const [addresses, setAddresses] = useState<unknown[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<any[]>([]);
 
   // Load data on component mount
   useEffect(() => {
