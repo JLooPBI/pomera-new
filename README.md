@@ -1,5 +1,44 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Design System
+
+### Brand Colors
+- **Primary Green**: `hsl(75, 31%, 48%)` / `#6B8E23` - Used for primary buttons, links, and brand elements
+- **Secondary Pink**: `hsl(348, 92%, 63%)` - Used for secondary actions and accents
+- **Primary Light**: `hsl(75, 31%, 92%)` - Light variant of primary green
+
+### Usage in Code
+```css
+/* CSS Custom Properties */
+background-color: hsl(var(--primary));
+color: hsl(var(--primary-foreground));
+```
+
+```tsx
+/* Tailwind Classes */
+<div className="bg-primary text-primary-foreground">Content</div>
+```
+
+### Communicating Color References
+When working with the development team, use these clear references:
+
+**✅ Good References:**
+- "Use our primary green color"
+- "Make it the same green as the Add Company button"
+- "Use the brand green"
+- "Apply the primary color"
+- "Use our project's green"
+
+**✅ Specific References:**
+- "Use the primary green (hsl(75, 31%, 48%))"
+- "Use bg-primary class"
+- "Use the green from our design system"
+
+**❌ Avoid Vague References:**
+- "Make it green" (too generic)
+- "Use a green color" (not specific to brand)
+- "Change to green" (could be any green)
+
 ## Getting Started
 
 First, run the development server:
